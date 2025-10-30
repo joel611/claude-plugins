@@ -1,0 +1,9 @@
+{
+  "name": "plugin-builder",
+  "description": "Helps create well-structured Claude Code plugins with skills, commands, and proper metadata following best practices",
+  "version": "1.0.0",
+  "author": {
+    "name": "Claude Code Marketplace"
+  },
+  "category": "claude"
+}

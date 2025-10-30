@@ -1,0 +1,5 @@
+{
+  "name": "plugin-name",
+  "source": "./plugins/category/plugin-name",
+  "description": "Brief description of what the plugin does for marketplace listing"
+}

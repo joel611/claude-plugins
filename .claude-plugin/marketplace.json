@@ -1,0 +1,15 @@
+{
+  "name": "claude-marketplace",
+  "owner": {
+    "name": "Joel Chan",
+    "email": "joel611@live.hk"
+  },
+  "description": "A collection of plugins useful for development tasks",
+  "plugins": [
+    {
+      "name": "plugin-builder",
+      "source": "./plugins/claude/plugin-builder",
+      "description": "Helps create well-structured Claude Code plugins with skills, commands, and proper metadata following best practices"
+    }
+  ]
+}

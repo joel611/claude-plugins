@@ -1,0 +1,10 @@
+{
+  "name": "plugin-name",
+  "description": "Clear, concise description of plugin functionality (1-2 sentences)",
+  "version": "1.0.0",
+  "author": {
+    "name": "Author Name",
+    "email": "author@example.com"
+  },
+  "category":"plugin-category-for-organization"
+}
