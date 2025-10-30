@@ -10,6 +10,11 @@
       "name": "plugin-builder",
       "source": "./plugins/claude/plugin-builder",
       "description": "Helps create well-structured Claude Code plugins with skills, commands, and proper metadata following best practices"
+    },
+    {
+      "name": "playwright-e2e",
+      "source": "./plugins/testing/playwright-e2e",
+      "description": "Comprehensive Playwright E2E testing plugin with test generation, Page Object Models, debugging, and maintenance. Features data-testid locators, TypeScript-first approach, and Playwright MCP integration for browser automation."
     }
   ]
 }
