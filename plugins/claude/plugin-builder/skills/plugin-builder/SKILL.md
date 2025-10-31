@@ -74,8 +74,7 @@ Create `.claude-plugin/plugin.json` with this structure:
   "author": {
     "name": "Author Name",
     "email": "author@example.com"
-  },
-  "category":"testing"
+  }
 }
 ```
 
@@ -84,9 +83,6 @@ Create `.claude-plugin/plugin.json` with this structure:
 - `description`: User-facing description (be specific about what it does)
 - `version`: Semantic version (major.minor.patch)
 - `author.name`: Author's name
-
-**Optional field**
-- `category`: Plugin category (e.g., "testing", "productivity", "tools")
 
 **Version Guidelines:**
 - Start with `1.0.0` for initial release
