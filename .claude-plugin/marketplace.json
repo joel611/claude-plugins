@@ -15,6 +15,11 @@
       "name": "playwright-e2e",
       "source": "./plugins/testing/playwright-e2e",
       "description": "Comprehensive Playwright E2E testing plugin with test generation, Page Object Models, debugging, and maintenance. Features data-testid locators, TypeScript-first approach, and Playwright MCP integration for browser automation."
+    },
+    {
+      "name": "tts-output",
+      "source": "./plugins/claude/tts-output",
+      "description": "Text-to-speech output for Claude responses using macOS 'say' command with customizable voice, speed, and AI-generated summaries"
     }
   ]
 }

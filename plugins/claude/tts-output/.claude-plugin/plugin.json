@@ -1,0 +1,9 @@
+{
+  "name": "tts-output",
+  "description": "Text-to-speech output for Claude responses using macOS 'say' command",
+  "version": "1.0.0",
+  "author": {
+    "name": "Joel Chan",
+    "email": "joel611@live.hk"
+  }
+}
