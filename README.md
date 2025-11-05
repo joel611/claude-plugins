@@ -15,16 +15,10 @@ This marketplace contains plugins that add new capabilities to Claude Code, incl
 
 ### Install the Marketplace
 
-To use plugins from this marketplace, you first need to install the marketplace itself:
+To use plugins from this marketplace, you first need to add the marketplace:
 
 ```bash
-/plugin install-marketplace https://github.com/joel611/claude-marketplace
-```
-
-Or if you have the marketplace cloned locally:
-
-```bash
-/plugin install-marketplace /path/to/claude-marketplace
+/plugin marketplace add joel611/claude-marketplace
 ```
 
 ### Install Individual Plugins
@@ -39,33 +33,11 @@ Replace `plugin-name` with the name of the plugin you want to install (see avail
 
 ## Available Plugins
 
-### plugin-builder
-
-Helps create well-structured Claude Code plugins with skills, commands, and proper metadata following best practices.
-
-**Install:**
-```bash
-/plugin install plugin-builder@joel-plugins
-```
-
-**Use:**
-```bash
-/plugin-builder
-```
-
-### playwright-e2e
-
-Comprehensive Playwright E2E testing plugin with test generation, Page Object Models, debugging, and maintenance. Features data-testid locators, TypeScript-first approach, and Playwright MCP integration for browser automation.
-
-**Install:**
-```bash
-/plugin install playwright-e2e@joel-plugins
-```
-
-**Use:**
-```bash
-/playwright-e2e
-```
+| Name | Description |
+|------|-------------|
+| plugin-builder | Helps create well-structured Claude Code plugins with skills, commands, and proper metadata following best practices |
+| playwright-e2e | Comprehensive Playwright E2E testing plugin with test generation, Page Object Models, debugging, and maintenance. Features data-testid locators, TypeScript-first approach, and Playwright MCP integration for browser automation. |
+| tts-output | Text-to-speech output for Claude responses using macOS 'say' command with customizable voice, speed, and AI-generated summaries |
 
 ## Plugin Management
 
