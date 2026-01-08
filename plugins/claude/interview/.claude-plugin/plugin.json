@@ -1,0 +1,9 @@
+{
+  "name": "interview",
+  "description": "Interactive interview command that asks in-depth questions to gather detailed requirements and generate comprehensive specifications",
+  "version": "1.0.0",
+  "author": {
+    "name": "Joel Chan",
+    "email": "joel611@live.hk"
+  }
+}

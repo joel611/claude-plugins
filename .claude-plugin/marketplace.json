@@ -30,6 +30,12 @@
       "source": "./plugins/analysis/gemini-research",
       "description": "Multi-agent plugin using gemini-cli for comprehensive code analysis and web research. Leverages Gemini's 1M token context window through specialized subagents for pattern detection, architecture analysis, documentation lookup, and technology comparisons.",
       "category": "analysis"
+    },
+    {
+      "name": "interview",
+      "source": "./plugins/claude/interview",
+      "description": "Interactive interview command that asks in-depth questions to gather detailed requirements and generate comprehensive specifications",
+      "category": "claude"
     }
   ]
 }
