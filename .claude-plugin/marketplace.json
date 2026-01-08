@@ -24,6 +24,12 @@
       "source": "./plugins/claude/tts-output",
       "description": "Text-to-speech output for Claude responses using macOS 'say' command with customizable voice, speed, and AI-generated summaries",
       "category": "claude"
+    },
+    {
+      "name": "gemini-research",
+      "source": "./plugins/analysis/gemini-research",
+      "description": "Multi-agent plugin using gemini-cli for comprehensive code analysis and web research. Leverages Gemini's 1M token context window through specialized subagents for pattern detection, architecture analysis, documentation lookup, and technology comparisons.",
+      "category": "analysis"
     }
   ]
 }

@@ -1,0 +1,9 @@
+{
+  "name": "gemini-research",
+  "description": "Multi-agent plugin using gemini-cli for comprehensive code analysis and web research. Leverages Gemini's 1M token context window for large-scale codebase analysis, pattern detection, and research tasks.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Joel Chan",
+    "email": "joel611@live.hk"
+  }
+}
