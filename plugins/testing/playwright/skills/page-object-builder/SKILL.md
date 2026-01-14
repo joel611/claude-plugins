@@ -1,12 +1,12 @@
-# Page Object Builder Skill
-
-## Purpose
-
-Create maintainable and reusable Page Object Models (POMs) for Playwright tests. Generates TypeScript classes that encapsulate page-specific locators and actions, following the Page Object Model design pattern with data-testid locators exclusively.
+---
+name: playwright-page-object-builder
+description: Create maintainable and reusable Page Object Models (POMs) for Playwright tests. Generates TypeScript classes that encapsulate page-specific locators and actions, following the Page Object Model design pattern with data-testid locators exclusively.
+---
 
 ## When to Use This Skill
 
 Use this skill when you need to:
+
 - Create a Page Object Model for a specific page or component
 - Refactor tests to use the POM pattern
 - Build reusable page classes for complex applications
@@ -14,6 +14,7 @@ Use this skill when you need to:
 - Improve test maintainability and reduce duplication
 
 Do NOT use this skill when:
+
 - Writing simple one-off tests (use test-generator skill)
 - Debugging existing tests (use test-debugger skill)
 - Refactoring existing POMs (use test-maintainer skill)
@@ -21,6 +22,7 @@ Do NOT use this skill when:
 ## Prerequisites
 
 Before using this skill:
+
 1. Understanding of the page structure and elements
 2. Knowledge of user interactions on the page
 3. List of data-testid values for page elements (or ability to suggest them)
@@ -32,6 +34,7 @@ Before using this skill:
 ### Step 1: Identify Page Information
 
 Gather from the user:
+
 - **Page name** or component name
 - **Page URL** or route
 - **Key elements** on the page (buttons, inputs, text, etc.)
@@ -41,6 +44,7 @@ Gather from the user:
 ### Step 2: Plan Page Object Structure
 
 Determine:
+
 - **Class name** (e.g., `LoginPage`, `DashboardPage`, `CheckoutPage`)
 - **Properties**: Locators for all page elements
 - **Methods**: Actions users can perform (login, addToCart, etc.)
@@ -52,8 +56,9 @@ Determine:
 Generate a TypeScript class with:
 
 **Structure:**
+
 ```typescript
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator } from "@playwright/test";
 
 export class PageName {
   readonly page: Page;
@@ -68,7 +73,7 @@ export class PageName {
 
   // Navigation
   async goto() {
-    await this.page.goto('/page-url');
+    await this.page.goto("/page-url");
   }
 
   // Actions
@@ -84,6 +89,7 @@ export class PageName {
 ```
 
 **Key Requirements:**
+
 1. All locators use data-testid (MANDATORY)
 2. Locators are readonly properties
 3. Constructor accepts Page object
@@ -96,6 +102,7 @@ export class PageName {
 ### Step 4: Define Locators
 
 For each element:
+
 ```typescript
 readonly elementName: Locator;
 
@@ -106,6 +113,7 @@ constructor(page: Page) {
 ```
 
 **Naming Convention:**
+
 - Use camelCase for properties
 - Descriptive names (e.g., `submitButton`, `emailInput`, `errorMessage`)
 - Suffix with element type when helpful (Button, Input, Message, Link)
@@ -113,6 +121,7 @@ constructor(page: Page) {
 ### Step 5: Implement Action Methods
 
 For each user action:
+
 ```typescript
 /**
  * Descriptive action name
@@ -130,6 +139,7 @@ async actionName(param?: string): Promise<void> {
 ```
 
 **Common Actions:**
+
 - Form filling: `async fillForm(data: FormData)`
 - Button clicks: `async clickButton()`
 - Navigation: `async navigateTo(section: string)`
@@ -138,6 +148,7 @@ async actionName(param?: string): Promise<void> {
 ### Step 6: Add Getter Methods
 
 For elements that tests will assert against:
+
 ```typescript
 getElementName(): Locator {
   return this.elementName;
@@ -155,6 +166,7 @@ async isElementVisible(): Promise<boolean> {
 ### Step 7: Validate Page Object
 
 Ensure the Page Object includes:
+
 - [ ] All locators use data-testid
 - [ ] Locators are readonly
 - [ ] All methods are async
@@ -168,11 +180,12 @@ Ensure the Page Object includes:
 ### Step 8: Provide Usage Example
 
 Show how to use the Page Object in tests:
-```typescript
-import { test, expect } from '@playwright/test';
-import { PageName } from './page-objects/PageName';
 
-test('test description', async ({ page }) => {
+```typescript
+import { test, expect } from "@playwright/test";
+import { PageName } from "./page-objects/PageName";
+
+test("test description", async ({ page }) => {
   const pageName = new PageName(page);
 
   await pageName.goto();
@@ -189,8 +202,9 @@ test('test description', async ({ page }) => {
 "Create a Page Object for the login page with username, password fields, login button, and error message."
 
 **Output:**
+
 ```typescript
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator } from "@playwright/test";
 
 /**
  * Page Object Model for the Login Page
@@ -216,15 +230,17 @@ export class LoginPage {
     this.passwordInput = page.locator('[data-testid="password-input"]');
     this.loginButton = page.locator('[data-testid="login-button"]');
     this.errorMessage = page.locator('[data-testid="error-message"]');
-    this.forgotPasswordLink = page.locator('[data-testid="forgot-password-link"]');
+    this.forgotPasswordLink = page.locator(
+      '[data-testid="forgot-password-link"]',
+    );
   }
 
   /**
    * Navigate to the login page
    */
   async goto(): Promise<void> {
-    await this.page.goto('/login');
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.goto("/login");
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   /**
@@ -233,7 +249,7 @@ export class LoginPage {
    * @param password - User's password
    */
   async login(username: string, password: string): Promise<void> {
-    await this.usernameInput.waitFor({ state: 'visible' });
+    await this.usernameInput.waitFor({ state: "visible" });
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
     await this.loginButton.click();
@@ -279,7 +295,7 @@ export class LoginPage {
    */
   async hasError(): Promise<boolean> {
     try {
-      await this.errorMessage.waitFor({ state: 'visible', timeout: 2000 });
+      await this.errorMessage.waitFor({ state: "visible", timeout: 2000 });
       return true;
     } catch {
       return false;
@@ -291,36 +307,39 @@ export class LoginPage {
    */
   async getErrorText(): Promise<string> {
     const text = await this.errorMessage.textContent();
-    return text?.trim() || '';
+    return text?.trim() || "";
   }
 }
 ```
 
 **Usage:**
-```typescript
-import { test, expect } from '@playwright/test';
-import { LoginPage } from './page-objects/LoginPage';
 
-test.describe('Login Flow', () => {
-  test('should login successfully with valid credentials', async ({ page }) => {
+```typescript
+import { test, expect } from "@playwright/test";
+import { LoginPage } from "./page-objects/LoginPage";
+
+test.describe("Login Flow", () => {
+  test("should login successfully with valid credentials", async ({ page }) => {
     const loginPage = new LoginPage(page);
 
     await loginPage.goto();
-    await loginPage.login('user@example.com', 'SecurePass123');
+    await loginPage.login("user@example.com", "SecurePass123");
 
     // Assert navigation to dashboard
-    await page.waitForURL('/dashboard');
+    await page.waitForURL("/dashboard");
   });
 
-  test('should show error with invalid credentials', async ({ page }) => {
+  test("should show error with invalid credentials", async ({ page }) => {
     const loginPage = new LoginPage(page);
 
     await loginPage.goto();
-    await loginPage.login('invalid@example.com', 'wrongpass');
+    await loginPage.login("invalid@example.com", "wrongpass");
 
     // Assert error message
     await expect(loginPage.getErrorMessage()).toBeVisible();
-    await expect(loginPage.getErrorMessage()).toContainText('Invalid credentials');
+    await expect(loginPage.getErrorMessage()).toContainText(
+      "Invalid credentials",
+    );
   });
 });
 ```
@@ -331,8 +350,9 @@ test.describe('Login Flow', () => {
 "Create a Page Object for a product details page with product name, price, description, quantity selector, add to cart button, and reviews section."
 
 **Output:**
+
 ```typescript
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator } from "@playwright/test";
 
 /**
  * Page Object Model for Product Details Page
@@ -372,7 +392,9 @@ export class ProductPage {
     // Product information
     this.productName = page.locator('[data-testid="product-name"]');
     this.productPrice = page.locator('[data-testid="product-price"]');
-    this.productDescription = page.locator('[data-testid="product-description"]');
+    this.productDescription = page.locator(
+      '[data-testid="product-description"]',
+    );
     this.productImage = page.locator('[data-testid="product-image"]');
 
     // Purchase
@@ -395,14 +417,14 @@ export class ProductPage {
    */
   async goto(productId: string): Promise<void> {
     await this.page.goto(`/products/${productId}`);
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   /**
    * Set the quantity for purchase
    */
   async setQuantity(quantity: number): Promise<void> {
-    await this.quantityInput.waitFor({ state: 'visible' });
+    await this.quantityInput.waitFor({ state: "visible" });
     await this.quantityInput.clear();
     await this.quantityInput.fill(quantity.toString());
   }
@@ -414,7 +436,7 @@ export class ProductPage {
     if (quantity > 1) {
       await this.setQuantity(quantity);
     }
-    await this.addToCartButton.waitFor({ state: 'enabled' });
+    await this.addToCartButton.waitFor({ state: "enabled" });
     await this.addToCartButton.click();
   }
 
@@ -444,7 +466,7 @@ export class ProductPage {
    */
   async getProductName(): Promise<string> {
     const text = await this.productName.textContent();
-    return text?.trim() || '';
+    return text?.trim() || "";
   }
 
   /**
@@ -452,7 +474,7 @@ export class ProductPage {
    */
   async getProductPrice(): Promise<string> {
     const text = await this.productPrice.textContent();
-    return text?.trim() || '';
+    return text?.trim() || "";
   }
 
   /**
@@ -467,7 +489,7 @@ export class ProductPage {
    */
   async getAverageRating(): Promise<string> {
     const text = await this.averageRating.textContent();
-    return text?.trim() || '';
+    return text?.trim() || "";
   }
 
   // Getters for assertions
@@ -495,8 +517,9 @@ export class ProductPage {
 "Create a Page Object for a dashboard with header, sidebar navigation, main content area, and user profile dropdown."
 
 **Output:**
+
 ```typescript
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator } from "@playwright/test";
 
 /**
  * Page Object Model for Dashboard Page
@@ -541,7 +564,9 @@ export class DashboardPage {
     this.logo = page.locator('[data-testid="logo"]');
     this.searchBar = page.locator('[data-testid="search-bar"]');
     this.notificationIcon = page.locator('[data-testid="notification-icon"]');
-    this.userProfileDropdown = page.locator('[data-testid="user-profile-dropdown"]');
+    this.userProfileDropdown = page.locator(
+      '[data-testid="user-profile-dropdown"]',
+    );
 
     // Sidebar
     this.sidebar = page.locator('[data-testid="sidebar"]');
@@ -558,12 +583,14 @@ export class DashboardPage {
     // Profile Dropdown
     this.profileMenu = page.locator('[data-testid="profile-menu"]');
     this.profileLink = page.locator('[data-testid="profile-link"]');
-    this.accountSettingsLink = page.locator('[data-testid="account-settings-link"]');
+    this.accountSettingsLink = page.locator(
+      '[data-testid="account-settings-link"]',
+    );
   }
 
   async goto(): Promise<void> {
-    await this.page.goto('/dashboard');
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.goto("/dashboard");
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   /**
@@ -586,7 +613,7 @@ export class DashboardPage {
    */
   async search(query: string): Promise<void> {
     await this.searchBar.fill(query);
-    await this.page.keyboard.press('Enter');
+    await this.page.keyboard.press("Enter");
   }
 
   /**
@@ -594,7 +621,7 @@ export class DashboardPage {
    */
   async openProfileDropdown(): Promise<void> {
     await this.userProfileDropdown.click();
-    await this.profileMenu.waitFor({ state: 'visible' });
+    await this.profileMenu.waitFor({ state: "visible" });
   }
 
   async navigateToProfile(): Promise<void> {
@@ -640,6 +667,7 @@ export class DashboardPage {
 ## Best Practices
 
 ### Page Object Design
+
 1. **Single Responsibility**: Each POM represents one page or component
 2. **No Assertions**: POMs should not contain test assertions (use getters instead)
 3. **Encapsulation**: Hide implementation details, expose high-level actions
@@ -647,6 +675,7 @@ export class DashboardPage {
 5. **Clear Naming**: Use descriptive names for classes, properties, and methods
 
 ### Locator Management
+
 1. **data-testid Only**: All locators must use data-testid attribute
 2. **Readonly**: Declare all locators as readonly
 3. **Initialize in Constructor**: All locators defined in constructor
@@ -654,6 +683,7 @@ export class DashboardPage {
 5. **Group Related**: Group related locators together (e.g., all form fields)
 
 ### Method Design
+
 1. **Async Methods**: All action methods should be async
 2. **Return Types**: Action methods return Promise<void>, getters return data
 3. **Parameters**: Use TypeScript types for all parameters
@@ -661,6 +691,7 @@ export class DashboardPage {
 5. **Atomic Actions**: Methods should perform single, focused actions
 
 ### Organization
+
 1. **File Location**: Store POMs in `page-objects/` or `pages/` directory
 2. **One Class Per File**: Each POM in its own file
 3. **Export Class**: Export the class as default or named export
@@ -670,9 +701,11 @@ export class DashboardPage {
 ## Common Issues and Solutions
 
 ### Issue 1: Too Many Locators
+
 **Problem:** Page Object has 30+ locators making it hard to maintain
 
 **Solutions:**
+
 - Break down into smaller component-based POMs
 - Group related elements into sub-objects
 - Consider component composition pattern
@@ -680,9 +713,11 @@ export class DashboardPage {
 - Create separate POMs for complex sections
 
 ### Issue 2: Tests Still Break When UI Changes
+
 **Problem:** Tests fail despite using POMs
 
 **Solutions:**
+
 - Ensure ONLY data-testid locators are used (not CSS/XPath)
 - Coordinate with developers to keep data-testid stable
 - Use semantic testid names that reflect purpose, not implementation
@@ -690,9 +725,11 @@ export class DashboardPage {
 - Update POM centrally when testid changes
 
 ### Issue 3: Duplicate Code Across POMs
+
 **Problem:** Same logic repeated in multiple Page Objects
 
 **Solutions:**
+
 - Extract common actions to utility functions
 - Create base Page class with shared methods
 - Use composition over inheritance when possible
@@ -700,9 +737,11 @@ export class DashboardPage {
 - Consider creating a ComponentPage for shared components
 
 ### Issue 4: Methods Too Complex
+
 **Problem:** Action methods contain complex logic and are hard to test
 
 **Solutions:**
+
 - Break down into smaller, atomic methods
 - Extract complex logic to private helper methods
 - Keep public methods simple and focused
@@ -710,9 +749,11 @@ export class DashboardPage {
 - Add clear comments for multi-step workflows
 
 ### Issue 5: Hard to Test Page Objects
+
 **Problem:** Can't verify Page Object behavior without full tests
 
 **Solutions:**
+
 - Keep POMs simple (locators + actions only)
 - Avoid business logic in POMs
 - Use type-safe interfaces
@@ -722,6 +763,7 @@ export class DashboardPage {
 ## Resources
 
 The `resources/` directory contains templates for common patterns:
+
 - `page-template.ts` - Basic Page Object structure
 - `component-template.ts` - Component-based Page Object
 - `base-page.ts` - Base class with common functionality
