@@ -157,7 +157,7 @@ while IFS= read -r match; do
         HARDCODED_FILES+=("$match")
     fi
 done < <(grep -r "localhost:[0-9]" $SEARCH_DIRS \
-    --exclude-dir={node_modules,.git,dist,build,coverage,.next,.turbo,out} \
+    --exclude-dir={node_modules,.git,dist,build,coverage,.next,.turbo,out,.claude,.agent} \
     --exclude="*.{json,lock,md,svg,png,jpg,jpeg,gif,ico,woff,woff2,ttf,eot}" \
     -l 2>/dev/null || true)
 
@@ -168,7 +168,7 @@ while IFS= read -r match; do
         HARDCODED_FILES+=("$match")
     fi
 done < <(grep -r "http://localhost[\"']" $SEARCH_DIRS \
-    --exclude-dir={node_modules,.git,dist,build,coverage,.next,.turbo,out} \
+    --exclude-dir={node_modules,.git,dist,build,coverage,.next,.turbo,out,.claude,.agent} \
     --exclude="*.{json,lock,md,svg,png,jpg,jpeg,gif,ico,woff,woff2,ttf,eot}" \
     -l 2>/dev/null || true)
 
@@ -179,7 +179,7 @@ while IFS= read -r match; do
         HARDCODED_FILES+=("$match")
     fi
 done < <(grep -r ":[\"']300[0-9]\|:[\"']5000\|:[\"']8080" $SEARCH_DIRS \
-    --exclude-dir={node_modules,.git,dist,build,coverage,.next,.turbo,out} \
+    --exclude-dir={node_modules,.git,dist,build,coverage,.next,.turbo,out,.claude,.agent} \
     --exclude="*.{json,lock,md,svg,png,jpg,jpeg,gif,ico,woff,woff2,ttf,eot}" \
     -l 2>/dev/null || true)
 

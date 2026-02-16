@@ -46,9 +46,11 @@ description: Use when project needs isolated development environments for parall
 **Always start with checklist** to understand project infrastructure:
 
 ```bash
-# From skill directory: .claude/skills/setup-isolated-env/
-./scripts/checklist.sh
+# Run from PROJECT ROOT using absolute path
+"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"
 ```
+
+**CRITICAL**: Run checklist.sh **from your project root directory**, not from the skill directory. The script needs to scan project files (docker-compose.yml, .env.example, src/ directories).
 
 **Note**: Script location will be chosen in Step 2. Examples below use `<worktree_scripts>` to represent the chosen location.
 
@@ -73,7 +75,7 @@ description: Use when project needs isolated development environments for parall
 
 ```bash
 # Default location (recommended) - use this value for <worktree_scripts>
-mkdir -p .worktrees/scripts
+mkdir -p .worktrees_scripts
 
 # Alternative: root scripts folder - use this value for <worktree_scripts>
 mkdir -p scripts
@@ -294,73 +296,7 @@ cleanup_environment() {
 
 ### Step 8: Update Project Documentation
 
-**Two-part documentation approach:**
-
-1. **Add worktree workflow section to CLAUDE.md** - Quick reference for developers
-2. **Create WORKTREE.md** - Detailed documentation for Claude to load dynamically (see `assets/WORKTREE.md-template.md`)
-3. **Add WORKTREE.md to reference section** - So Claude knows to load it before worktree operations
-
-**Add this quick reference to CLAUDE.md:**
-
-```markdown
-## Isolated Development Environments
-
-This project uses git worktrees for isolated parallel development. Each environment gets its own:
-- Separate worktree in `.worktrees/<env-name>/`
-- Unique ports (web, agent, etc.)
-- Isolated database
-- Independent `.env.local` configuration
-
-### Creating a New Environment
-
-```bash
-# 1. Create isolated environment
-<worktree_scripts>/setup-env.sh
-
-# 2. Navigate to worktree
-cd .worktrees/<env-name>
-
-# 3. REQUIRED: Run smoke test to verify setup
-<worktree_scripts>/smoke-test.sh <env-name>
-
-# 4. Only start development after smoke test passes
-bun run dev  # or your project's dev command
-```
-
-### Smoke Test Verification
-
-**CRITICAL**: Always run smoke test before starting development in a new worktree:
-
-```bash
-<worktree_scripts>/smoke-test.sh <env-name>
-```
-
-**The smoke test verifies:**
-- Database connectivity
-- Port availability (no conflicts)
-- Environment variables configured correctly
-- Services reachable
-
-**DO NOT start development** if smoke test fails. Debug the environment first.
-
-### Cleanup When Done
-
-```bash
-# From project root
-<worktree_scripts>/cleanup-env.sh <env-name>
-```
-
-### Port Allocation
-
-| Environment | Web Port | Agent Port | Notes |
-|-------------|----------|------------|-------|
-| Main        | 3000     | 4111       | Default ports |
-| Worktree 1  | 3010     | 4121       | +10 offset |
-| Worktree 2  | 3020     | 4131       | +20 offset |
-
-```
-
-**Add to reference section in CLAUDE.md:**
+**Add WORKTREE.md reference to CLAUDE.md:**
 
 ```markdown
 ## Reference file
@@ -377,13 +313,15 @@ See `assets/WORKTREE.md-template.md` for complete customizable template. This fi
 - Workflow examples
 - Best practices
 - Limitations and edge cases
+- Port allocation strategy
+- Smoke test verification steps
+- Cleanup procedures
 
-**Why this two-part approach:**
-- CLAUDE.md: Quick reference, always loaded
-- WORKTREE.md: Detailed docs, loaded on-demand via reference section
+**Why this approach:**
+- WORKTREE.md: Comprehensive docs, loaded on-demand when needed
 - Future Claude instances see WORKTREE.md in reference table → load it before worktree operations
-- Developers get comprehensive docs without cluttering main CLAUDE.md
-- Makes smoke test verification a required step, not optional
+- Keeps CLAUDE.md lean and focused
+- All worktree details in one dedicated file
 
 ## When to Re-run This Skill
 
@@ -391,13 +329,13 @@ See `assets/WORKTREE.md-template.md` for complete customizable template. This fi
 
 | Change | Action |
 |--------|--------|
-| Adding new external service | Re-run checklist.sh, update setup-env.sh to provision new service |
+| Adding new external service | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"`, update setup-env.sh to provision new service |
 | Migrating infrastructure | Re-run full setup (e.g., Docker → Kubernetes) |
-| Hardcoded URLs introduced | Re-run checklist.sh, refactor URLs, verify isolation |
+| Hardcoded URLs introduced | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"`, refactor URLs, verify isolation |
 | Port conflicts from growth | Adjust port allocation strategy in setup-env.sh |
 
 **How to update**:
-1. Run `./scripts/checklist.sh` (from skill directory) to detect new services
+1. Run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"` (from project root) to detect new services
 2. Update `setup-env.sh` to provision new resources
 3. Update `smoke-test.sh` to verify new connections
 4. Test with new environment creation
@@ -409,7 +347,7 @@ See `assets/setup-worktree.sh` for complete Docker Compose + Postgres + Redis ex
 ## Common Mistakes
 
 **Mistake**: Hardcoded service URLs in codebase
-**Fix**: Run checklist.sh BEFORE creating scripts. Refactor URLs to use environment variables or relative paths.
+**Fix**: Run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"` BEFORE creating scripts. Refactor URLs to use environment variables or relative paths.
 
 **Mistake**: Copying example script without adapting to project infrastructure
 **Fix**: Use example as reference. Create project-specific script based on checklist.sh detection.
@@ -471,12 +409,13 @@ Once setup scripts are created and tested:
 4. **Reason**: This setup context shouldn't persist into feature development conversations
 
 **Success criteria**:
-- [ ] checklist.sh runs from skill directory and detects all services
+- [ ] `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"` runs from project root and detects all services
 - [ ] Project scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) created in `scripts/` directory
 - [ ] setup-env.sh creates isolated environment successfully
 - [ ] smoke-test.sh verifies all connections
 - [ ] Hardcoded URLs refactored to environment variables
-- [ ] CLAUDE.md (or AGENTS.md) updated with worktree workflow and smoke test requirement
+- [ ] WORKTREE.md created with comprehensive workflow documentation
+- [ ] CLAUDE.md reference section updated to include WORKTREE.md
 - [ ] Project scripts committed to repository
 - [ ] **Context cleared** (use `/clear`)
 
