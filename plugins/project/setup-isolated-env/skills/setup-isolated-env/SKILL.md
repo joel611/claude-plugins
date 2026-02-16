@@ -170,52 +170,154 @@ display_summary() {
 - Environment 2: Base + offset * 2 (e.g., 3020, 3021)
 - Choose offset: 10, 100, or 1000 depending on service count
 
+### Step 3.5: Framework-Specific Port Configuration
+
+**CRITICAL**: Before writing setup scripts, ensure application code reads ports from environment variables.
+
+**Run framework detection**:
+```bash
+"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/detect-framework.sh"
+```
+
+**Common framework patterns**:
+
+#### Vite Projects
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  server: {
+    port: Number(process.env.PORT) || 5001,
+  },
+});
+
+// package.json - REMOVE hardcoded port
+"dev": "vite dev --host"  // NOT: "vite dev --port 5001"
+```
+
+#### Next.js Projects
+```bash
+# Next.js reads PORT automatically
+# package.json - ensure no hardcoded port
+"dev": "next dev"  # NOT: "next dev -p 3000"
+```
+
+#### Express/Elysia/Bun
+```typescript
+// src/index.ts
+const PORT = Number(process.env.PORT) || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+```
+
+**Verification**: Check checklist.sh output for "Port configuration issues" and resolve them BEFORE proceeding.
+
+### Step 3.6: Database Creation Strategy
+
+**CRITICAL**: Determine how databases will be created based on project rules.
+
+**Detect SQL execution policy** (check CLAUDE.md for rules like "MUST use MCP", "no CLI SQL"):
+
+**Strategy A: Direct psql/CLI (default)**
+- Use `psql` or Docker Compose exec for database creation
+- Works for most projects
+- Example: `PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "CREATE DATABASE ${DB_NAME}"`
+
+**Strategy B: Supabase MCP (for restricted projects)**
+- If project prohibits CLI SQL execution
+- Database creation must be done via Claude Code:
+  ```markdown
+  After setup script completes, create database manually:
+  1. Open Claude Code session
+  2. Execute via MCP: CREATE DATABASE ${DB_NAME}
+  ```
+- OR add exception to CLAUDE.md: `MUST NOT run sql through cli (exception: CREATE DATABASE for worktree setup)`
+
+**Strategy C: Schema-based isolation (alternative)**
+- Use single database with schemas: `CREATE SCHEMA ${ENV_NAME}`
+- Update DATABASE_URL: `?schema=${ENV_NAME}`
+- Simpler, no admin privileges needed
+- Trade-off: Less isolation than separate databases
+
+**Recommendation**: For Supabase projects with SQL restrictions:
+1. Add CREATE DATABASE exception to CLAUDE.md (admin operation, one-time setup)
+2. Document manual creation step in setup script if exception not acceptable
+3. Consider schema-based isolation as fallback
+
 ### Step 4: Guide Creation of smoke-test.sh
+
+**CRITICAL**: Smoke test runs FROM WITHIN the worktree, not from project root.
+
+**Purpose**: Verify environment connectivity after setup
+
+**Usage**:
+```bash
+# Run from within worktree
+cd .worktrees/<env-name>
+../../<worktree_scripts>/smoke-test.sh
+```
+
+**Key changes from traditional approach**:
+- No environment name argument needed (detects from current directory)
+- Loads .env.local from current directory
+- More intuitive workflow (already in worktree when developing)
+
+**Template** (see `assets/smoke-test.sh` for complete version):
 
 **Purpose**: Verify environment connectivity after setup
 
 ```bash
 #!/usr/bin/env bash
-# Verify isolated environment is working
+# Smoke Test - Run from within worktree
+set -euo pipefail
 
-ENV_DIR="$1"
-
-if [[ -z "$ENV_DIR" ]]; then
-    echo "Usage: <worktree_scripts>/smoke-test.sh .worktrees/{env-name}"
+# Detect if we're in a worktree
+if [[ ! -f ".env.local" ]]; then
+    echo "✗ Not in worktree (.env.local not found)"
+    echo "Usage: cd .worktrees/<env-name> && ../../<worktree_scripts>/smoke-test.sh"
     exit 1
 fi
 
-cd "$ENV_DIR"
+# Auto-detect environment name
+ENV_NAME=$(basename "$PWD")
+echo "Smoke Test: ${ENV_NAME}"
 
-# Load environment
+# Load environment from current directory
 source .env.local
 
-echo "Testing environment: $ENV_DIR"
-echo ""
+# Test 1: Environment variables
+echo "[1/4] Checking environment variables..."
+[[ -n "${PORT}" ]] && echo "✓ PORT=${PORT}" || echo "✗ PORT not set"
+[[ -n "${DATABASE_URL}" ]] && echo "✓ DATABASE_URL configured" || echo "✗ DATABASE_URL not set"
 
-# Test database connection
-echo "Testing database..."
-# Project-specific database ping command
-# e.g., psql $DATABASE_URL -c "SELECT 1" >/dev/null && echo "✓ DB OK"
+# Test 2: Port availability
+echo "[2/4] Checking port availability..."
+lsof -i ":${PORT}" &>/dev/null || echo "✓ Port ${PORT} available"
 
-# Test cache connection
-echo "Testing cache..."
-# Project-specific cache ping command
-# e.g., redis-cli -n $REDIS_DB PING >/dev/null && echo "✓ Cache OK"
+# Test 3: Database connectivity (multiple methods)
+echo "[3/4] Checking database connectivity..."
+if command -v psql &>/dev/null; then
+    psql "$DATABASE_URL" -c "SELECT 1" &>/dev/null && echo "✓ Database OK"
+elif command -v supabase &>/dev/null; then
+    supabase status &>/dev/null && echo "✓ Supabase running"
+fi
 
-# Test web server port available
-echo "Testing web server port..."
-# Check if port is available
-# e.g., nc -z localhost $PORT || echo "✓ Port $PORT available"
-
-# Test API server port available
-echo "Testing API server port..."
-# Check if port is available
-# e.g., nc -z localhost $API_PORT || echo "✓ Port $API_PORT available"
+# Test 4: Infrastructure services
+echo "[4/4] Checking infrastructure..."
+supabase status &>/dev/null && echo "✓ Supabase running" || echo "⚠ Check services"
 
 echo ""
-echo "Smoke test complete. Ready to start servers."
+echo "✓ Smoke test passed! Ready to start development."
 ```
+
+**Implementation notes**:
+- Script detects environment name from current directory
+- No arguments needed (more intuitive)
+- Loads .env.local from current working directory
+- Provides fallback checks if psql not available
+- See `assets/smoke-test.sh` for complete production-ready version
 
 ### Step 5: Environment Variable Updates
 
@@ -272,33 +374,94 @@ echo "Smoke test complete. Ready to start servers."
 
 ### Step 7: Cleanup Commands
 
-**Guide user to add cleanup section** to setup script:
+**Create separate cleanup-env.sh script** (see `assets/cleanup-env.sh` for complete version)
+
+**CRITICAL BUG TO AVOID**: Do not use `local` keyword outside of functions:
 
 ```bash
-# Cleanup function (include in setup-env.sh)
-cleanup_environment() {
-    local ENV_NAME="$1"
+# ❌ WRONG - causes error
+local db_port
+db_port=$(supabase status | grep "DB URL" | awk ...)
 
-    # Remove git worktree
-    git worktree remove ".worktrees/${ENV_NAME}"
-
-    # Drop database (project-specific)
-    # e.g., docker compose exec db dropdb ${ENV_NAME}_db
-
-    # Flush cache namespace (if using Redis)
-    # e.g., redis-cli -n ${REDIS_DB} FLUSHDB
-
-    # Remove storage buckets (if applicable)
-
-    echo "Environment ${ENV_NAME} cleaned up"
+# ✅ CORRECT - only use local inside functions
+drop_database() {
+    local db_port  # Inside function scope
+    db_port=$(supabase status | grep "DB URL" | awk ...)
 }
+
+# ✅ OR - don't use local at script level
+db_port=$(supabase status | grep "DB URL" | awk ...)
 ```
+
+**Database cleanup strategies**:
+
+```bash
+# Strategy A: psql (direct)
+PGPASSWORD=postgres psql -h 127.0.0.1 -p "$db_port" -U postgres -d postgres \
+    -c "DROP DATABASE IF EXISTS ${DB_NAME};"
+
+# Strategy B: Docker Compose
+docker compose exec -T postgres psql -U postgres \
+    -c "DROP DATABASE IF EXISTS ${DB_NAME};"
+
+# Strategy C: Manual (for MCP-only projects)
+echo "Manual cleanup required:"
+echo "  Open Claude Code and execute: DROP DATABASE IF EXISTS ${DB_NAME}"
+```
+
+**Key features**:
+- Checks for uncommitted changes before removing worktree
+- Confirms deletion (prevents accidents)
+- Handles database cleanup based on infrastructure
+- Falls back gracefully if database drop fails
 
 ### Step 8: Update Project Documentation
 
-**Add WORKTREE.md reference to CLAUDE.md:**
+**Add quick reference to CLAUDE.md**:
 
 ```markdown
+## Isolated Development Environments
+
+This project uses git worktrees for isolated parallel development.
+
+### Creating a New Environment
+
+```bash
+# 1. Create isolated environment
+<worktree_scripts>/setup-env.sh
+
+# 2. Navigate to worktree
+cd .worktrees/<env-name>
+
+# 3. REQUIRED: Run smoke test from within worktree
+../../<worktree_scripts>/smoke-test.sh
+
+# 4. Only start development after smoke test passes
+bun run dev
+```
+
+### Smoke Test Verification
+
+**CRITICAL**: Always run smoke test before starting development:
+
+```bash
+cd .worktrees/<env-name>
+../../<worktree_scripts>/smoke-test.sh
+```
+
+The smoke test verifies:
+- Database connectivity
+- Port availability
+- Environment variables configured correctly
+
+**DO NOT start development** if smoke test fails.
+
+### Cleanup When Done
+
+```bash
+<worktree_scripts>/cleanup-env.sh <env-name>
+```
+
 ## Reference file
 | filename | description |
 |---|---|
@@ -307,21 +470,24 @@ cleanup_environment() {
 
 **Create WORKTREE.md** (place in `.claude/` or project root):
 
-See `assets/WORKTREE.md-template.md` for complete customizable template. This file contains:
-- Detailed setup instructions
+See `assets/WORKTREE.md-template.md` for complete customizable template. Update with:
+- **Framework-specific port configuration** (Vite/Next.js/Express/etc.)
+- **Database creation method** (psql, MCP, schema-based)
+- **Smoke test workflow** (emphasize running from within worktree)
 - Troubleshooting guide
-- Workflow examples
 - Best practices
-- Limitations and edge cases
-- Port allocation strategy
-- Smoke test verification steps
-- Cleanup procedures
+- Limitations
+
+**Critical sections to customize**:
+1. Port configuration based on detected framework
+2. Database creation strategy (especially for Supabase MCP projects)
+3. Smoke test usage (runs from within worktree, no arguments)
 
 **Why this approach:**
-- WORKTREE.md: Comprehensive docs, loaded on-demand when needed
-- Future Claude instances see WORKTREE.md in reference table → load it before worktree operations
-- Keeps CLAUDE.md lean and focused
-- All worktree details in one dedicated file
+- CLAUDE.md: Quick reference, always loaded
+- WORKTREE.md: Comprehensive docs, loaded on-demand via reference section
+- Future Claude instances auto-load WORKTREE.md before worktree operations
+- Makes smoke test verification a required step, not optional
 
 ## When to Re-run This Skill
 
@@ -346,14 +512,26 @@ See `assets/setup-worktree.sh` for complete Docker Compose + Postgres + Redis ex
 
 ## Common Mistakes
 
+**Mistake**: Hardcoded ports in application code or package.json
+**Fix**: Run `detect-framework.sh` for framework-specific guidance. Move port config to framework config files (vite.config.ts, etc.), not CLI args.
+
+**Mistake**: Using psql in setup script for projects with SQL execution restrictions
+**Fix**: Check CLAUDE.md for SQL policies. Add CREATE DATABASE exception, document manual step, or use schema-based isolation.
+
+**Mistake**: Running smoke-test.sh from project root with environment argument
+**Fix**: NEW APPROACH: Run from within worktree (`cd .worktrees/<env-name> && ../../<worktree_scripts>/smoke-test.sh`). No arguments needed.
+
+**Mistake**: Using `local` keyword outside functions in bash scripts
+**Fix**: Only use `local` inside function scope, or omit it at script level. Causes "can only be used in a function" error.
+
 **Mistake**: Hardcoded service URLs in codebase
-**Fix**: Run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"` BEFORE creating scripts. Refactor URLs to use environment variables or relative paths.
+**Fix**: Run `checklist.sh` BEFORE creating scripts. Refactor URLs to use environment variables or relative paths.
 
 **Mistake**: Copying example script without adapting to project infrastructure
 **Fix**: Use example as reference. Create project-specific script based on checklist.sh detection.
 
 **Mistake**: Not testing smoke test before creating multiple environments
-**Fix**: Create one test environment, run smoke-test.sh, verify connectivity, THEN scale to multiple environments.
+**Fix**: Create one test environment, run smoke-test.sh from within worktree, verify connectivity, THEN scale to multiple environments.
 
 **Mistake**: Forgetting to update CORS origins with new ports
 **Fix**: Include all environment ports in CORS configuration. Restart API server after changes.
@@ -363,6 +541,9 @@ See `assets/setup-worktree.sh` for complete Docker Compose + Postgres + Redis ex
 
 **Mistake**: Not sanitizing environment names for database identifiers
 **Fix**: Replace special characters (`/`, `-`, `.`) with underscores for database names.
+
+**Mistake**: Assuming all frameworks handle ports the same way
+**Fix**: Vite needs config file changes, Next.js reads PORT automatically, Express/Elysia need code changes. Check framework-specific guidance.
 
 ## Troubleshooting
 
@@ -375,19 +556,45 @@ See `assets/setup-worktree.sh` for complete Docker Compose + Postgres + Redis ex
 - Don't proceed with setup until URLs refactored
 - Each hardcoded URL is a future debugging session
 
+**Framework-specific port configuration issues**:
+- **Vite**: Port must be in `vite.config.ts`, not package.json CLI args
+- **Next.js**: Remove `-p` flag from dev script, uses PORT automatically
+- **Express/Elysia**: Update server code to read from `process.env.PORT`
+- Run `detect-framework.sh` for specific guidance
+
+**Database creation fails (Supabase MCP projects)**:
+- **Problem**: Setup script uses psql, but project prohibits CLI SQL
+- **Solution A**: Add exception to CLAUDE.md for CREATE DATABASE (admin operation)
+- **Solution B**: Document manual database creation via Claude Code MCP
+- **Solution C**: Use schema-based isolation instead (`CREATE SCHEMA`)
+- See Step 3.6 for detailed strategies
+
+**Servers use wrong ports after setup**:
+- Check application code reads from env vars (not hardcoded)
+- Verify vite.config.ts has `port: Number(process.env.PORT)`
+- Restart dev servers after .env.local changes
+- Check checklist.sh "Port configuration issues" output
+
+**Smoke test not finding worktree**:
+- **Problem**: Running from wrong directory
+- **Solution**: `cd .worktrees/<env-name>` first, then run `../../<worktree_scripts>/smoke-test.sh`
+- Smoke test NO LONGER takes environment name as argument
+- It detects environment from current directory
+
 **Port conflicts after setup**:
 - Check `lsof -i :{PORT}` for conflicting processes
 - Adjust port allocation offset in setup-env.sh
 
-**Database creation fails**:
-- Verify container/service is running
-- Check user permissions
-- Ensure database name doesn't already exist
+**Cleanup script errors with "local can only be used in a function"**:
+- **Problem**: `local` keyword used outside function scope
+- **Solution**: Move variable declaration inside function or remove `local`
+- See Step 7 for correct pattern
 
 **Smoke test fails**:
 - Check .env.local has correct values
 - Verify services are running
 - Test connectivity manually before debugging script
+- Run from WITHIN worktree, not from project root
 
 ## Edge Cases
 

@@ -136,7 +136,66 @@ if [[ "$ENV_TEMPLATE_FOUND" == true ]]; then
     fi
 fi
 
-# 5. Scan for hardcoded URLs that break worktree isolation
+# 5. Check framework-specific port configurations
+info "Checking framework-specific port configurations..."
+
+FRAMEWORK_DETECTED=""
+PORT_CONFIG_ISSUES=()
+
+# Detect Vite
+if [[ -f "vite.config.ts" ]] || [[ -f "vite.config.js" ]]; then
+    FRAMEWORK_DETECTED="vite"
+    success "Framework detected: Vite"
+
+    # Check if port is configured to read from env
+    if ! grep -E "port.*process\.env\.(PORT|VITE_PORT)" vite.config.* &>/dev/null; then
+        warn "  - Vite config doesn't read port from environment"
+        PORT_CONFIG_ISSUES+=("vite.config: Add 'server: { port: Number(process.env.PORT) || 5001 }'")
+    else
+        success "  - Vite port configured to read from environment"
+    fi
+
+    # Check package.json for hardcoded port in dev script
+    if [[ -f "package.json" ]] && grep -q "\"dev\".*--port [0-9]" package.json; then
+        warn "  - package.json dev script has hardcoded port"
+        PORT_CONFIG_ISSUES+=("package.json: Remove '--port XXXX' from dev script")
+    fi
+fi
+
+# Detect Next.js
+if [[ -f "next.config.js" ]] || [[ -f "next.config.ts" ]] || [[ -f "next.config.mjs" ]]; then
+    FRAMEWORK_DETECTED="nextjs"
+    success "Framework detected: Next.js"
+
+    # Next.js reads PORT automatically, just check package.json
+    if [[ -f "package.json" ]] && grep -q "\"dev\".*next dev -p [0-9]" package.json; then
+        warn "  - package.json dev script has hardcoded port"
+        PORT_CONFIG_ISSUES+=("package.json: Remove '-p XXXX' from next dev command")
+    else
+        success "  - Next.js will read PORT environment variable automatically"
+    fi
+fi
+
+# Check application entry points for hardcoded ports
+for file in src/index.{ts,js} src/server.{ts,js} apps/*/src/index.{ts,js} server.{ts,js}; do
+    if [[ -f "$file" ]]; then
+        if grep -E "const (PORT|port) = [0-9]{4}" "$file" &>/dev/null; then
+            warn "  - Hardcoded port in $file"
+            PORT_CONFIG_ISSUES+=("$file: Change to 'const PORT = Number(process.env.PORT) || XXXX'")
+        fi
+    fi
+done
+
+if [[ ${#PORT_CONFIG_ISSUES[@]} -gt 0 ]]; then
+    echo ""
+    warn "Port configuration issues found (${#PORT_CONFIG_ISSUES[@]}):"
+    for issue in "${PORT_CONFIG_ISSUES[@]}"; do
+        echo "    - $issue"
+    done
+    echo ""
+fi
+
+# 6. Scan for hardcoded URLs that break worktree isolation
 info "Scanning codebase for hardcoded service URLs..."
 
 HARDCODED_URLS_FOUND=false
@@ -204,7 +263,7 @@ else
     success "No hardcoded service URLs detected"
 fi
 
-# 6. Summary and Recommendations
+# 7. Summary and Recommendations
 echo ""
 echo "=== Summary ==="
 echo ""
