@@ -1,6 +1,6 @@
 {
   "name": "elysia-skill",
-  "description": "Elysia specialist",
+  "description": "Expert knowledge for building type-safe web applications with ElysiaJS, including validation, lifecycle hooks, Eden end-to-end type safety, and integrations",
   "version": "1.0.0",
   "author": {
     "name": "joel.chan"
