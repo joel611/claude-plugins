@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Setup Feature Worktree Helper Script
-# Automates creation of isolated git worktree with dedicated ports and database
+# Setup Isolated Environment Script
+# Configures an existing git worktree with unique ports and an isolated database.
+# Run this AFTER creating the worktree (e.g. via `git worktree add .worktrees/<name> -b <name>`).
 
 # Colors for output
 RED='\033[0;31m'
@@ -45,28 +46,36 @@ check_prerequisites() {
     success "Prerequisites check passed"
 }
 
-# Get current branch
+# Get environment name (branch name of the worktree to configure)
 get_branch_name() {
     local current_branch
     current_branch=$(git branch --show-current)
 
     if [[ "$current_branch" == "main" ]] || [[ "$current_branch" == "master" ]]; then
-        read -p "Enter feature branch name: " BRANCH_NAME
-        if [[ -z "$BRANCH_NAME" ]]; then
-            error "Branch name cannot be empty"
-        fi
-    else
-        BRANCH_NAME="$current_branch"
+        error "Run this script from inside the feature worktree, not from main/master."
     fi
 
-    info "Using branch: $BRANCH_NAME"
+    BRANCH_NAME="$current_branch"
+    info "Configuring environment: $BRANCH_NAME"
+}
+
+# Verify the worktree already exists
+verify_worktree() {
+    info "Verifying worktree exists at .worktrees/$BRANCH_NAME..."
+
+    if [[ ! -d ".worktrees/$BRANCH_NAME" ]]; then
+        error "Worktree not found at .worktrees/$BRANCH_NAME. Create it first:
+  git worktree add .worktrees/$BRANCH_NAME -b $BRANCH_NAME"
+    fi
+
+    success "Worktree found"
 }
 
 # Calculate next available ports and Redis DB
 allocate_ports() {
     info "Scanning for available ports and Redis DB..."
 
-    # Find existing worktree ports
+    # Find existing worktree ports, excluding the current worktree so re-runs don't shift values
     local max_port=3000
     local max_redis_db=0
 
@@ -75,13 +84,13 @@ allocate_ports() {
             if [[ $port -gt $max_port ]]; then
                 max_port=$port
             fi
-        done < <(find .worktrees -name ".env.local" -exec grep -h "^PORT=" {} \; | cut -d= -f2 2>/dev/null)
+        done < <(find .worktrees -name ".env.local" -not -path ".worktrees/$BRANCH_NAME/*" -exec grep -h "^PORT=" {} \; | cut -d= -f2 2>/dev/null)
 
         while IFS= read -r db; do
             if [[ $db -gt $max_redis_db ]]; then
                 max_redis_db=$db
             fi
-        done < <(find .worktrees -name ".env.local" -exec grep -h "^REDIS_DB=" {} \; | cut -d= -f2 2>/dev/null)
+        done < <(find .worktrees -name ".env.local" -not -path ".worktrees/$BRANCH_NAME/*" -exec grep -h "^REDIS_DB=" {} \; | cut -d= -f2 2>/dev/null)
     fi
 
     # Increment by 10 from max port
@@ -104,30 +113,22 @@ allocate_ports() {
     info "Allocated ports: Web=$WEB_PORT, API=$API_PORT, Redis DB=$REDIS_DB"
 }
 
-# Create worktree
-create_worktree() {
-    info "Creating worktree at .worktrees/$BRANCH_NAME..."
-
-    mkdir -p .worktrees
-
-    if git worktree add ".worktrees/$BRANCH_NAME" -b "$BRANCH_NAME"; then
-        success "Worktree created"
-    else
-        error "Failed to create worktree. Branch may already exist."
-    fi
-}
-
 # Setup environment variables
 setup_environment() {
     info "Setting up environment variables..."
 
     cd ".worktrees/$BRANCH_NAME"
 
-    # Copy template
-    if [[ -f "../../.env.example" ]]; then
-        cp "../../.env.example" .env.local
+    # Copy template only if .env.local doesn't exist yet
+    if [[ ! -f ".env.local" ]]; then
+        if [[ -f "../../.env.example" ]]; then
+            cp "../../.env.example" .env.local
+        else
+            cp "../../.env.local.example" .env.local
+        fi
+        info "Copied env template to .env.local"
     else
-        cp "../../.env.local.example" .env.local
+        info ".env.local already exists — updating port/db values only"
     fi
 
     # Sanitize branch name for database
@@ -218,7 +219,7 @@ print_summary() {
     DB_NAME=$(echo "$BRANCH_NAME" | tr '/-.' '_')_db
 
     echo ""
-    echo -e "${GREEN}✅ Worktree Setup Complete${NC}"
+    echo -e "${GREEN}✅ Isolated Environment Ready${NC}"
     echo ""
     echo "📁 Location: .worktrees/$BRANCH_NAME"
     echo "🌐 Web URL: http://localhost:$WEB_PORT"
@@ -231,7 +232,7 @@ print_summary() {
     echo "2. bun run dev (web server)"
     echo "3. cd apps/agent && bun run dev (agent service)"
     echo ""
-    echo "To remove this worktree:"
+    echo "To tear down this environment:"
     echo "git worktree remove .worktrees/$BRANCH_NAME"
     echo "docker compose exec postgres psql -U postgres -c \"DROP DATABASE $DB_NAME;\""
     echo "docker compose exec redis redis-cli -n $REDIS_DB FLUSHDB"
@@ -241,13 +242,13 @@ print_summary() {
 # Main execution
 main() {
     echo ""
-    echo "=== Feature Worktree Setup ==="
+    echo "=== Isolated Environment Setup ==="
     echo ""
 
     check_prerequisites
     get_branch_name
+    verify_worktree
     allocate_ports
-    create_worktree
     setup_environment
     create_database
     run_migrations

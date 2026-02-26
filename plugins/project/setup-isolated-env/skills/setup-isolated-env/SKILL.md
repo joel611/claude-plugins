@@ -508,7 +508,7 @@ See `assets/WORKTREE.md-template.md` for complete customizable template. Update 
 
 ## Reference: Example Implementation
 
-See `assets/setup-worktree.sh` for complete Docker Compose + Postgres + Redis example. **Use as reference ONLY** - don't copy blindly. Adapt to your project's infrastructure.
+See `assets/setup-env.sh` for complete Docker Compose + Postgres + Redis example. **Use as reference ONLY** - don't copy blindly. Adapt to your project's infrastructure.
 
 ## Common Mistakes
 

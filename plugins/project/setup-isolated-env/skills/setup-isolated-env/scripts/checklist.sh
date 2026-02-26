@@ -294,7 +294,7 @@ echo ""
 echo "=== Next Steps ==="
 echo ""
 echo "1. Create scripts/ folder in project root"
-echo "2. Generate tailored setup-worktree.sh based on detected services:"
+echo "2. Generate tailored setup-env.sh based on detected services:"
 if [[ "$SUPABASE_FOUND" == true ]]; then
     echo "   - Use Supabase CLI for database operations"
     echo "   - Example: supabase db execute --file migrations/create_db.sql"
