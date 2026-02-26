@@ -1,17 +1,17 @@
 ---
-name: setup-isolated-env
+name: generate-env-scripts
 description: Use when project needs isolated development environments for parallel feature work, or when adding new external services (databases, caches, message queues) that require environment isolation. ONE-TIME setup skill - clear context after use.
 ---
 
-# Setup Isolated Environment
+# Generate Environment Scripts
 
 ## Overview
 
-**ONE-TIME SETUP SKILL** - Guides projects to create automation scripts for isolated development environments using git worktrees. **Core principle**: Help project establish isolation infrastructure once, then exit context. This is NOT for ongoing implementation work.
+**ONE-TIME SETUP SKILL** - Scans project infrastructure and guides creation of automation scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) for isolated development environments using git worktrees. **Core principle**: Establish isolation infrastructure once, then exit context. This is NOT for ongoing implementation work.
 
 **CRITICAL**: After completing setup, **tell user to clear context** (`/clear` or restart session). This skill adds setup details that shouldn't persist into implementation conversations.
 
-**Announce at start:** "i'm using setup-isolated-env skill to set up an isolation readiness"
+**Announce at start:** "i'm using generate-env-scripts skill to scan infrastructure and create isolation scripts"
 
 ## When to Use
 
@@ -26,7 +26,7 @@ description: Use when project needs isolated development environments for parall
 - Isolation scripts break due to environment changes
 
 **Don't use for**:
-- Actually creating worktrees (use project's generated script)
+- Actually creating worktrees (use project's generated script via `setup-isolated-env:activate-worktree-env`)
 - Ongoing feature development (that's what generated scripts are for)
 - Debugging existing isolation setup (read project's scripts instead)
 
@@ -47,7 +47,7 @@ description: Use when project needs isolated development environments for parall
 
 ```bash
 # Run from PROJECT ROOT using absolute path
-"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"
+"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"
 ```
 
 **CRITICAL**: Run checklist.sh **from your project root directory**, not from the skill directory. The script needs to scan project files (docker-compose.yml, .env.example, src/ directories).
@@ -66,32 +66,56 @@ description: Use when project needs isolated development environments for parall
 
 ### Step 2: Determine Script Location
 
-**Goal**: Choose where to store worktree automation scripts
+**Goal**: Detect existing worktree conventions, then confirm or choose script location.
 
-**Ask user to confirm location:**
-- Default: `.worktrees_scripts/` (recommended - keeps worktree infrastructure together)
-- Alternative: `scripts/` (if project prefers root-level scripts)
-- Custom: User-specified path
+#### 2a: Scan Existing Worktrees
+
+**Always scan first** before suggesting anything:
 
 ```bash
-# Default location (recommended) - use this value for <worktree_scripts>
+# List all existing worktrees (skip main worktree - first line)
+git worktree list --porcelain | grep "^worktree" | tail -n +2 | awk '{print $2}'
+```
+
+**From results, detect**:
+1. **Worktree directory** — where are they stored? (`.worktrees/`, `worktrees/`, `../feature-branches/`, etc.)
+2. **Script location** — look for existing automation scripts:
+
+```bash
+# Check common script locations relative to project root
+ls .worktrees_scripts/ 2>/dev/null
+ls scripts/ 2>/dev/null
+ls worktree_scripts/ 2>/dev/null
+```
+
+**If existing worktrees and scripts found** → present detected convention and ask to confirm:
+
+> Detected: worktrees in `.worktrees/`, scripts in `.worktrees_scripts/`
+> Use this convention? [Y/n]
+
+**If existing worktrees but no scripts found** → note the worktree directory, then proceed to 2b for script location only.
+
+**If no existing worktrees** → proceed to 2b.
+
+#### 2b: Choose Location (when not detected)
+
+**Suggest options and ask user to decide:**
+
+| Option | Path | Recommended when |
+|--------|------|-----------------|
+| A (default) | `.worktrees_scripts/` | Project uses `.worktrees/` for worktrees |
+| B | `scripts/` | Project already has a `scripts/` directory |
+| C | Custom path | User has specific preference |
+
+```bash
+# Option A (default)
 mkdir -p .worktrees_scripts
 
-# Alternative: root scripts folder - use this value for <worktree_scripts>
+# Option B
 mkdir -p scripts
 ```
 
 **Replace `<worktree_scripts>` with chosen location throughout remaining steps.**
-
-**Why .worktrees_scripts/ is recommended:**
-- Groups worktree infrastructure in one location
-- Separates worktree automation from general project scripts
-- Clearer organization when .worktrees/ becomes the worktree hub
-
-**When to use scripts/ instead:**
-- Project already uses scripts/ for all automation
-- Team prefers flat structure
-- Worktrees are secondary feature, not primary workflow
 
 ### Step 3: Guide Creation of setup-env.sh
 
@@ -176,7 +200,7 @@ display_summary() {
 
 **Run framework detection**:
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/detect-framework.sh"
+"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/detect-framework.sh"
 ```
 
 **Common framework patterns**:
@@ -259,14 +283,12 @@ cd .worktrees/<env-name>
 ../../<worktree_scripts>/smoke-test.sh
 ```
 
-**Key changes from traditional approach**:
+**Key design decisions**:
 - No environment name argument needed (detects from current directory)
 - Loads .env.local from current directory
 - More intuitive workflow (already in worktree when developing)
 
 **Template** (see `assets/smoke-test.sh` for complete version):
-
-**Purpose**: Verify environment connectivity after setup
 
 ```bash
 #!/usr/bin/env bash
@@ -419,7 +441,7 @@ echo "  Open Claude Code and execute: DROP DATABASE IF EXISTS ${DB_NAME}"
 
 **Add quick reference to CLAUDE.md**:
 
-```markdown
+````markdown
 ## Isolated Development Environments
 
 This project uses git worktrees for isolated parallel development.
@@ -466,7 +488,7 @@ The smoke test verifies:
 | filename | description |
 |---|---|
 | WORKTREE.md | Detailed worktree setup and usage guide - load before creating isolated environments |
-```
+````
 
 **Create WORKTREE.md** (place in `.claude/` or project root):
 
@@ -495,13 +517,13 @@ See `assets/WORKTREE.md-template.md` for complete customizable template. Update 
 
 | Change | Action |
 |--------|--------|
-| Adding new external service | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"`, update setup-env.sh to provision new service |
+| Adding new external service | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"`, update setup-env.sh to provision new service |
 | Migrating infrastructure | Re-run full setup (e.g., Docker → Kubernetes) |
-| Hardcoded URLs introduced | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"`, refactor URLs, verify isolation |
+| Hardcoded URLs introduced | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"`, refactor URLs, verify isolation |
 | Port conflicts from growth | Adjust port allocation strategy in setup-env.sh |
 
 **How to update**:
-1. Run `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"` (from project root) to detect new services
+1. Run `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"` (from project root) to detect new services
 2. Update `setup-env.sh` to provision new resources
 3. Update `smoke-test.sh` to verify new connections
 4. Test with new environment creation
@@ -512,14 +534,14 @@ See `assets/setup-env.sh` for complete Docker Compose + Postgres + Redis example
 
 ## Common Mistakes
 
+**Mistake**: Skipping worktree scan and immediately asking user for script location
+**Fix**: Always run `git worktree list --porcelain` first. If existing worktrees exist, infer the convention from them and confirm rather than asking from scratch.
+
 **Mistake**: Hardcoded ports in application code or package.json
 **Fix**: Run `detect-framework.sh` for framework-specific guidance. Move port config to framework config files (vite.config.ts, etc.), not CLI args.
 
 **Mistake**: Using psql in setup script for projects with SQL execution restrictions
 **Fix**: Check CLAUDE.md for SQL policies. Add CREATE DATABASE exception, document manual step, or use schema-based isolation.
-
-**Mistake**: Running smoke-test.sh from project root with environment argument
-**Fix**: NEW APPROACH: Run from within worktree (`cd .worktrees/<env-name> && ../../<worktree_scripts>/smoke-test.sh`). No arguments needed.
 
 **Mistake**: Using `local` keyword outside functions in bash scripts
 **Fix**: Only use `local` inside function scope, or omit it at script level. Causes "can only be used in a function" error.
@@ -529,9 +551,6 @@ See `assets/setup-env.sh` for complete Docker Compose + Postgres + Redis example
 
 **Mistake**: Copying example script without adapting to project infrastructure
 **Fix**: Use example as reference. Create project-specific script based on checklist.sh detection.
-
-**Mistake**: Not testing smoke test before creating multiple environments
-**Fix**: Create one test environment, run smoke-test.sh from within worktree, verify connectivity, THEN scale to multiple environments.
 
 **Mistake**: Forgetting to update CORS origins with new ports
 **Fix**: Include all environment ports in CORS configuration. Restart API server after changes.
@@ -569,18 +588,6 @@ See `assets/setup-env.sh` for complete Docker Compose + Postgres + Redis example
 - **Solution C**: Use schema-based isolation instead (`CREATE SCHEMA`)
 - See Step 3.6 for detailed strategies
 
-**Servers use wrong ports after setup**:
-- Check application code reads from env vars (not hardcoded)
-- Verify vite.config.ts has `port: Number(process.env.PORT)`
-- Restart dev servers after .env.local changes
-- Check checklist.sh "Port configuration issues" output
-
-**Smoke test not finding worktree**:
-- **Problem**: Running from wrong directory
-- **Solution**: `cd .worktrees/<env-name>` first, then run `../../<worktree_scripts>/smoke-test.sh`
-- Smoke test NO LONGER takes environment name as argument
-- It detects environment from current directory
-
 **Port conflicts after setup**:
 - Check `lsof -i :{PORT}` for conflicting processes
 - Adjust port allocation offset in setup-env.sh
@@ -589,12 +596,6 @@ See `assets/setup-env.sh` for complete Docker Compose + Postgres + Redis example
 - **Problem**: `local` keyword used outside function scope
 - **Solution**: Move variable declaration inside function or remove `local`
 - See Step 7 for correct pattern
-
-**Smoke test fails**:
-- Check .env.local has correct values
-- Verify services are running
-- Test connectivity manually before debugging script
-- Run from WITHIN worktree, not from project root
 
 ## Edge Cases
 
@@ -616,8 +617,8 @@ Once setup scripts are created and tested:
 4. **Reason**: This setup context shouldn't persist into feature development conversations
 
 **Success criteria**:
-- [ ] `"${CLAUDE_PLUGIN_ROOT}/skills/setup-isolated-env/scripts/checklist.sh"` runs from project root and detects all services
-- [ ] Project scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) created in `scripts/` directory
+- [ ] `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"` runs from project root and detects all services
+- [ ] Project scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) created in chosen location
 - [ ] setup-env.sh creates isolated environment successfully
 - [ ] smoke-test.sh verifies all connections
 - [ ] Hardcoded URLs refactored to environment variables
@@ -626,4 +627,4 @@ Once setup scripts are created and tested:
 - [ ] Project scripts committed to repository
 - [ ] **Context cleared** (use `/clear`)
 
-**Next session**: Use project's `setup-env.sh` for creating environments. This skill is not needed again unless infrastructure changes.
+**Next step**: When creating a new worktree, use `setup-isolated-env:activate-worktree-env` to run setup-env.sh and verify the environment.
