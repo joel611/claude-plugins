@@ -64,7 +64,6 @@ flowchart TD
     G --> H[Commit scripts]
     H --> I([Clear context\n— setup done])
 
-    style F fill:#fff3cd,stroke:#FF9800,stroke-width:2px
 ```
 
 > Triggered by `setup-isolated-env:generate-env-scripts`
@@ -86,9 +85,6 @@ flowchart LR
     E --> F["▶️ Run cleanup-env.sh\nDrop DB · free cache"]
     F --> G([Remove worktree\ngit worktree remove])
 
-    style B fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style C fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style F fill:#fde8d4,stroke:#FF9800,stroke-width:2px
 ```
 
 > `setup-env.sh` and `smoke-test.sh` triggered by `setup-isolated-env:activate-worktree-env`
