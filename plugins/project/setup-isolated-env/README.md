@@ -43,66 +43,56 @@ This plugin provides two skills with distinct responsibilities:
 
 ---
 
-## Development Flow
+## Flow 1 — Project Setup
+
+Run once when setting up a new project, or re-run when infrastructure changes.
 
 ```mermaid
 flowchart TD
-    A([Project needs parallel dev\nor adds a new service]) --> B
+    A([New project\nor infrastructure change]) --> B{First time\nor update?}
 
-    subgraph ONCE ["📋 ONE-TIME SETUP — generate-env-scripts skill"]
-        B[Run checklist.sh\nScans infrastructure] --> C{Prerequisites\nmet?}
-        C -- No --> D[Resolve issues:\nAdd containerization,\ncreate .env template,\nfix hardcoded URLs]
-        D --> B
-        C -- Yes --> E[Detect worktree conventions\nand script location]
-        E --> F[Run detect-framework.sh\nVite / Next.js / Express / Elysia]
-        F --> G
+    B -- New project --> C[Scan infrastructure\n& detect framework]
+    B -- Adding service\nor arch change --> C
 
-        G["✍️ WRITE: setup-env.sh\nPorts · DB · .env.local · migrations"]
-        G --> H["✍️ WRITE: smoke-test.sh\nVerify connectivity"]
-        H --> I["✍️ WRITE: cleanup-env.sh\nDrop DB · free cache"]
-        I --> J[Update CLAUDE.md + create WORKTREE.md]
-        J --> K[Commit scripts to repo]
-        K --> L[/clear context — setup done/]
-    end
+    C --> D{Prerequisites\nmet?}
+    D -- No --> E[Resolve: add containerization,\ncreate .env template, fix hardcoded URLs]
+    E --> C
+    D -- Yes --> F
 
-    L --> M
+    F["✍️ Write isolation scripts\nsetup-env.sh · smoke-test.sh · cleanup-env.sh"]
+    F --> G[Update CLAUDE.md\n& WORKTREE.md]
+    G --> H[Commit scripts]
+    H --> I([Clear context\n— setup done])
 
-    subgraph EACH ["🔁 PER WORKTREE — activate-worktree-env skill"]
-        M([Developer creates worktree\ngit worktree add .worktrees/feat -b feat]) --> N
-        N[cd into worktree] --> O
-
-        O["▶️ RUN: setup-env.sh\n─────────────────────────────────\n① Verify worktree exists\n② Allocate unique ports\n③ Copy .env.example → .env.local\n④ Write PORT, DATABASE_URL, etc.\n⑤ Create isolated database\n⑥ Run migrations"]
-
-        O --> P["▶️ RUN: smoke-test.sh\n─────────────────────────────────\nCheck PORT, DATABASE_URL are set\nVerify DB connectivity\nConfirm port is free"]
-
-        P --> Q{Smoke test\npassed?}
-        Q -- No --> R[Fix issues:\nStart infra,\ncheck .env.local,\ncheck DB]
-        R --> P
-        Q -- Yes --> S([Start dev: bun run dev])
-    end
-
-    S --> T{Feature done?}
-    T -- Yes --> U
-
-    subgraph TEARDOWN ["🗑️ TEARDOWN — Developer runs manually"]
-        U["▶️ RUN: cleanup-env.sh\n─────────────────────────────────\n① Warn if uncommitted changes\n② Drop isolated database\n③ Free cache namespace"]
-        U --> V["Developer: git worktree remove\n.worktrees/feat"]
-    end
-
-    V --> W([Done])
-    T -- No --> S
-
-    style ONCE fill:#e8f4fd,stroke:#2196F3,stroke-width:2px
-    style EACH fill:#e8fdf0,stroke:#4CAF50,stroke-width:2px
-    style TEARDOWN fill:#fdf3e8,stroke:#FF9800,stroke-width:2px
-    style G fill:#fff3cd,stroke:#FF9800,stroke-width:2px
-    style H fill:#fff3cd,stroke:#FF9800,stroke-width:2px
-    style I fill:#fff3cd,stroke:#FF9800,stroke-width:2px
-    style O fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style P fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style U fill:#fde8d4,stroke:#FF9800,stroke-width:2px
-    style V fill:#f8d7da,stroke:#dc3545,stroke-width:2px
+    style F fill:#fff3cd,stroke:#FF9800,stroke-width:2px
 ```
+
+> Triggered by `setup-isolated-env:generate-env-scripts`
+
+---
+
+## Flow 2 — Feature Development with Worktrees
+
+Repeat for every feature branch.
+
+```mermaid
+flowchart LR
+    A([Create worktree\ngit worktree add]) --> B
+
+    B["▶️ Run setup-env.sh\nPorts · DB · .env.local · migrations"]
+    B --> C["▶️ Run smoke-test.sh\nVerify environment"]
+    C --> D([Develop & test])
+    D --> E[Commit & open PR]
+    E --> F["▶️ Run cleanup-env.sh\nDrop DB · free cache"]
+    F --> G([Remove worktree\ngit worktree remove])
+
+    style B fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style C fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style F fill:#fde8d4,stroke:#FF9800,stroke-width:2px
+```
+
+> `setup-env.sh` and `smoke-test.sh` triggered by `setup-isolated-env:activate-worktree-env`
+> `cleanup-env.sh` run manually before `git worktree remove`
 
 ### Script Lifecycle at a Glance
 
