@@ -131,8 +131,8 @@ setup_environment() {
         info ".env.local already exists — updating port/db values only"
     fi
 
-    # Sanitize branch name for database
-    DB_NAME=$(echo "$BRANCH_NAME" | tr '/-.' '_')_db
+    # Sanitize branch name for database (feat/set-env → feat_set_env)
+    DB_NAME=$(echo "$BRANCH_NAME" | tr '/-.' '_')
 
     # Update or add PORT variables
     if grep -q "^PORT=" .env.local; then
@@ -186,8 +186,8 @@ setup_environment() {
 create_database() {
     info "Creating isolated database..."
 
-    # Sanitize branch name for database
-    DB_NAME=$(echo "$BRANCH_NAME" | tr '/-.' '_')_db
+    # Sanitize branch name for database (feat/set-env → feat_set_env)
+    DB_NAME=$(echo "$BRANCH_NAME" | tr '/-.' '_')
 
     # Extract postgres user from docker-compose.yml
     POSTGRES_USER=$(grep "POSTGRES_USER" docker-compose.yml | head -1 | cut -d: -f2 | tr -d ' "' || echo "postgres")
@@ -216,7 +216,7 @@ run_migrations() {
 
 # Print summary
 print_summary() {
-    DB_NAME=$(echo "$BRANCH_NAME" | tr '/-.' '_')_db
+    DB_NAME=$(echo "$BRANCH_NAME" | tr '/-.' '_')
 
     echo ""
     echo -e "${GREEN}✅ Isolated Environment Ready${NC}"

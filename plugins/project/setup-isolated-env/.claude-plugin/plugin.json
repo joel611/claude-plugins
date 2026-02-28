@@ -1,7 +1,7 @@
 {
   "name": "setup-isolated-env",
-  "version": "0.2.0",
-  "description": "A one-time setup plugin for Claude Code that helps projects create automation scripts for isolated development environments using git worktrees. Guides projects through establishing infrastructure for parallel feature development with separate worktrees, unique ports, isolated databases, and independent environment configurations.",
+  "version": "0.2.2",
+  "description": "Enables parallel feature development by isolating each git worktree with its own ports, database, and environment config. Provides two skills: generate-env-scripts to create project-level setup/cleanup/smoke-test scripts, and activate-worktree-env to provision and verify a new worktree's environment.",
   "author": {
     "name": "Joel Chan",
     "email": "joel611@live.hk"
