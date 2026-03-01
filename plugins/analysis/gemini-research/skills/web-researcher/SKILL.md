@@ -25,7 +25,7 @@ Do NOT use this skill when:
 ## Prerequisites
 
 Before using this skill:
-1. **gemini-cli must be installed**: `npm install -g @anthropic/gemini-cli`
+1. **gemini-cli must be installed**: `npm install -g @google/gemini-cli` (verify with `gemini --version`)
 2. **gemini-cli must be configured**: With valid API credentials and web access
 3. **Clear research goals**: Know what information you're looking for
 4. **Context about the problem**: Understand why this research is needed
@@ -34,6 +34,14 @@ To verify gemini-cli is installed:
 ```bash
 gemini --version
 ```
+
+## Agent Restrictions
+
+The `gemini-web-researcher` subagent operates under these strict constraints:
+- **Read:** Can read any codebase file (Read, Glob, Grep tools)
+- **Write:** May ONLY write `.md` files — no code, config, or script files
+- **Gemini mode:** Always runs with `--approval-mode plan` (read-only mode), never `--yolo`
+- **Code changes:** Explicitly denied — agent will refuse requests to modify source code
 
 ## Instructions
 
@@ -69,6 +77,8 @@ Use the Task tool with:
 - description: "[Brief 3-5 word description]"
 - prompt: "[Detailed research request with context]"
 ```
+
+The subagent will run: `gemini --approval-mode plan -p "..."` — this keeps gemini in read-only mode so it cannot modify any files. The subagent itself can only write `.md` files and will refuse requests to change code.
 
 **Your prompt should include:**
 1. **Context**: What project/problem this research is for
@@ -217,7 +227,7 @@ Please provide:
 - Best practices for 2024
 - Any recent updates or changes
 
-Run: gemini -p with this research request
+Run: gemini --approval-mode plan -p with this research request
 Return the raw gemini output."
 ```
 
@@ -364,7 +374,7 @@ Include:
 - Code examples for each scenario
 - Current best practices (2024)
 
-Run: gemini -p with this research
+Run: gemini --approval-mode plan -p with this research
 Return raw output."
 ```
 
@@ -433,7 +443,7 @@ Please include:
 
 Create a comparison table and provide a recommendation based on the context.
 
-Run: gemini -p with comparison research
+Run: gemini --approval-mode plan -p with comparison research
 Return raw output."
 ```
 
@@ -504,7 +514,7 @@ Include:
 - Best practices for production
 - Common pitfalls to avoid
 
-Run: gemini -p with Stripe research
+Run: gemini --approval-mode plan -p with Stripe research
 Return raw output."
 ```
 
@@ -656,22 +666,17 @@ Use both skills together for comprehensive understanding:
 4. **web-researcher**: Research best practices for those patterns
 5. Document learnings for team
 
-## Interactive Research Mode
+## Multi-Step Research
 
-For complex topics requiring iterative exploration, the subagent can use gemini's interactive mode:
+For complex topics requiring iterative depth, spawn the subagent multiple times with progressively focused prompts rather than using interactive mode (which is not supported for automated subagents):
 
 **Example - Deep Technology Evaluation:**
 ```
-Prompt to subagent:
-"Use interactive mode (gemini -i) to research GraphQL vs REST for my use case.
+# Round 1: Broad overview
+Prompt: "gemini --approval-mode plan -p 'What are the high-level differences between GraphQL and REST APIs? Cover architecture, data fetching patterns, and use cases.'"
 
-Start by asking gemini about the high-level differences, then based on the response, ask follow-up questions about:
-- Performance implications for my scale (1000 req/sec)
-- Client complexity differences
-- Caching strategies
-- Real-time data handling
-
-Conduct this as an interactive research session and return the complete conversation."
+# Round 2: Focus on a finding
+Prompt: "gemini --approval-mode plan -p 'Deep dive: GraphQL vs REST performance at scale (1000 req/sec). Cover N+1 queries, caching strategies, and real-time data handling.'"
 ```
 
 ## Resources
