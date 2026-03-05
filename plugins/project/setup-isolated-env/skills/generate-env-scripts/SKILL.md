@@ -47,7 +47,7 @@ description: Use when project needs isolated development environments for parall
 
 ```bash
 # Run from PROJECT ROOT using absolute path
-"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"
+"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"
 ```
 
 **CRITICAL**: Run checklist.sh **from your project root directory**, not from the skill directory. The script needs to scan project files (docker-compose.yml, .env.example, src/ directories).
@@ -200,7 +200,7 @@ display_summary() {
 
 **Run framework detection**:
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/detect-framework.sh"
+"${CLAUDE_SKILL_DIR}/scripts/detect-framework.sh"
 ```
 
 **Common framework patterns**:
@@ -517,13 +517,13 @@ See `assets/WORKTREE.md-template.md` for complete customizable template. Update 
 
 | Change | Action |
 |--------|--------|
-| Adding new external service | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"`, update setup-env.sh to provision new service |
+| Adding new external service | Re-run `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"`, update setup-env.sh to provision new service |
 | Migrating infrastructure | Re-run full setup (e.g., Docker → Kubernetes) |
-| Hardcoded URLs introduced | Re-run `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"`, refactor URLs, verify isolation |
+| Hardcoded URLs introduced | Re-run `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"`, refactor URLs, verify isolation |
 | Port conflicts from growth | Adjust port allocation strategy in setup-env.sh |
 
 **How to update**:
-1. Run `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"` (from project root) to detect new services
+1. Run `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"` (from project root) to detect new services
 2. Update `setup-env.sh` to provision new resources
 3. Update `smoke-test.sh` to verify new connections
 4. Test with new environment creation
@@ -617,7 +617,7 @@ Once setup scripts are created and tested:
 4. **Reason**: This setup context shouldn't persist into feature development conversations
 
 **Success criteria**:
-- [ ] `"${CLAUDE_PLUGIN_ROOT}/skills/generate-env-scripts/scripts/checklist.sh"` runs from project root and detects all services
+- [ ] `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"` runs from project root and detects all services
 - [ ] Project scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) created in chosen location
 - [ ] setup-env.sh creates isolated environment successfully
 - [ ] smoke-test.sh verifies all connections
