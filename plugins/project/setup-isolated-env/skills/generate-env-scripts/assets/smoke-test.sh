@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke Test for Isolated Environment
-# RUN FROM WITHIN WORKTREE: cd .worktrees/<env-name> && ../../<worktree_scripts>/smoke-test.sh
+# RUN FROM WITHIN WORKTREE: cd .worktrees/<env-name> && .worktrees_scripts/smoke-test.sh
 set -euo pipefail
 
 # Colors
@@ -15,7 +15,7 @@ CURRENT_DIR=$(pwd)
 if [[ ! -f ".env.local" ]]; then
     echo -e "${RED}✗${NC} Not in a worktree environment (.env.local not found)"
     echo -e "${BLUE}ℹ${NC} Run this script from within the worktree:"
-    echo -e "    ${BLUE}cd .worktrees/<env-name> && ../../<worktree_scripts>/smoke-test.sh${NC}"
+    echo -e "    ${BLUE}cd .worktrees/<env-name> && .worktrees_scripts/smoke-test.sh${NC}"
     exit 1
 fi
 
