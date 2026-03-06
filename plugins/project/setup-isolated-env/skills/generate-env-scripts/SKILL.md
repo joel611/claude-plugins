@@ -1,34 +1,22 @@
 ---
 name: generate-env-scripts
-description: Use when project needs isolated development environments for parallel feature work, or when adding new external services (databases, caches, message queues) that require environment isolation. ONE-TIME setup skill - clear context after use.
+description: Setup skill for creating isolated development environments using git worktrees. Run once per project to generate setup-env.sh, smoke-test.sh, and cleanup-env.sh scripts. Re-run when adding new external services or changing infrastructure. Use when parallel feature work is needed, port conflicts occur between branches, or when adding databases, caches, or queues that need per-branch isolation. Invoke this skill when the user mentions setting up worktrees, parallel feature development, environment conflicts, or adding new external services to a project.
 ---
 
 # Generate Environment Scripts
 
 ## Overview
 
-**ONE-TIME SETUP SKILL** - Scans project infrastructure and guides creation of automation scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) for isolated development environments using git worktrees. **Core principle**: Establish isolation infrastructure once, then exit context. This is NOT for ongoing implementation work.
+Scans project infrastructure and guides creation of automation scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) for isolated development environments using git worktrees. **Core principle**: Establish isolation infrastructure once, then re-run only when infrastructure changes. This is NOT for ongoing implementation work.
 
-**CRITICAL**: After completing setup, **tell user to clear context** (`/clear` or restart session). This skill adds setup details that shouldn't persist into implementation conversations.
+After completing setup, **tell user to clear context** (`/clear` or restart session). This skill adds setup details that shouldn't persist into implementation conversations.
 
 **Announce at start:** "i'm using generate-env-scripts skill to scan infrastructure and create isolation scripts"
 
-## When to Use
-
-**Use ONCE when**:
-- New project needs parallel feature development capability
-- Adding external services (database, cache, queue, storage) that need isolation
-- Developers report environment conflicts (port collisions, data pollution)
-
-**Re-run when**:
-- Adding new external service (e.g., adding Redis to project that only had Postgres)
-- Changing infrastructure (migrating from Docker to Kubernetes, adding Supabase)
-- Isolation scripts break due to environment changes
-
 **Don't use for**:
-- Actually creating worktrees (use project's generated script via `setup-isolated-env:activate-worktree-env`)
-- Ongoing feature development (that's what generated scripts are for)
-- Debugging existing isolation setup (read project's scripts instead)
+- Creating individual worktrees (use `setup-isolated-env:activate-worktree-env`)
+- Ongoing feature development (that's what the generated scripts are for)
+- Debugging existing isolation setup (read the project's scripts instead)
 
 ## Quick Reference
 
@@ -272,19 +260,19 @@ app.listen(PORT, () => {
 
 ### Step 4: Guide Creation of smoke-test.sh
 
-**CRITICAL**: Smoke test runs FROM WITHIN the worktree, not from project root.
+Smoke test runs FROM WITHIN the worktree — no arguments needed, env name auto-detected from `$PWD`.
 
 **Purpose**: Verify environment connectivity after setup
 
 **Usage**:
 ```bash
-# Run from within worktree
+# Run from inside the worktree
 cd .worktrees/<env-name>
-../../<worktree_scripts>/smoke-test.sh
+.worktrees_scripts/smoke-test.sh
 ```
 
 **Key design decisions**:
-- No environment name argument needed (detects from current directory)
+- No environment name argument needed (detects from `basename $PWD`)
 - Loads .env.local from current directory
 - More intuitive workflow (already in worktree when developing)
 
@@ -298,7 +286,7 @@ set -euo pipefail
 # Detect if we're in a worktree
 if [[ ! -f ".env.local" ]]; then
     echo "✗ Not in worktree (.env.local not found)"
-    echo "Usage: cd .worktrees/<env-name> && ../../<worktree_scripts>/smoke-test.sh"
+    echo "Usage: cd .worktrees/<env-name> && .worktrees_scripts/smoke-test.sh"
     exit 1
 fi
 
@@ -335,9 +323,9 @@ echo "✓ Smoke test passed! Ready to start development."
 ```
 
 **Implementation notes**:
-- Script detects environment name from current directory
-- No arguments needed (more intuitive)
-- Loads .env.local from current working directory
+- Script detects environment name from `basename $PWD`
+- No arguments needed
+- Loads .env.local from current working directory (inside worktree)
 - Provides fallback checks if psql not available
 - See `assets/smoke-test.sh` for complete production-ready version
 
@@ -431,7 +419,15 @@ echo "Manual cleanup required:"
 echo "  Open Claude Code and execute: DROP DATABASE IF EXISTS ${DB_NAME}"
 ```
 
+**Usage**:
+```bash
+# Run from inside the worktree (env name auto-detected from $PWD)
+cd .worktrees/<env-name>
+.worktrees_scripts/cleanup-env.sh
+```
+
 **Key features**:
+- Env name auto-detected from `basename $PWD`
 - Checks for uncommitted changes before removing worktree
 - Confirms deletion (prevents accidents)
 - Handles database cleanup based on infrastructure
@@ -445,30 +441,34 @@ echo "  Open Claude Code and execute: DROP DATABASE IF EXISTS ${DB_NAME}"
 ## Isolated Development Environments
 
 This project uses git worktrees for isolated parallel development.
+Scripts live in `<worktree_scripts>/` (tracked in git, present in every worktree checkout).
 
 ### Creating a New Environment
 
 ```bash
-# 1. Create isolated environment
-<worktree_scripts>/setup-env.sh
+# 1. Create worktree (from project root)
+git worktree add .worktrees/<env-name> -b <branch-name>
 
-# 2. Navigate to worktree
+# 2. Navigate into it
 cd .worktrees/<env-name>
 
-# 3. REQUIRED: Run smoke test from within worktree
-../../<worktree_scripts>/smoke-test.sh
+# 3. Run setup (from inside worktree)
+<worktree_scripts>/setup-env.sh
 
-# 4. Only start development after smoke test passes
-bun run dev
+# 4. Run smoke test (from inside worktree, no args needed)
+<worktree_scripts>/smoke-test.sh
+
+# 5. Only start development after smoke test passes
+bun run dev  # or your project's dev command
 ```
 
 ### Smoke Test Verification
 
-**CRITICAL**: Always run smoke test before starting development:
+Always run smoke test before starting development. Run from **inside** the worktree:
 
 ```bash
 cd .worktrees/<env-name>
-../../<worktree_scripts>/smoke-test.sh
+<worktree_scripts>/smoke-test.sh
 ```
 
 The smoke test verifies:
@@ -476,12 +476,15 @@ The smoke test verifies:
 - Port availability
 - Environment variables configured correctly
 
-**DO NOT start development** if smoke test fails.
+Do not start development if smoke test fails.
 
 ### Cleanup When Done
 
+Run from **inside** the worktree (env name auto-detected):
+
 ```bash
-<worktree_scripts>/cleanup-env.sh <env-name>
+cd .worktrees/<env-name>
+<worktree_scripts>/cleanup-env.sh
 ```
 
 ## Reference file
@@ -511,91 +514,52 @@ See `assets/WORKTREE.md-template.md` for complete customizable template. Update 
 - Future Claude instances auto-load WORKTREE.md before worktree operations
 - Makes smoke test verification a required step, not optional
 
-## When to Re-run This Skill
-
-**Re-run when project infrastructure changes**:
+## When to Re-run
 
 | Change | Action |
 |--------|--------|
 | Adding new external service | Re-run `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"`, update setup-env.sh to provision new service |
 | Migrating infrastructure | Re-run full setup (e.g., Docker → Kubernetes) |
-| Hardcoded URLs introduced | Re-run `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"`, refactor URLs, verify isolation |
+| Hardcoded URLs introduced | Re-run checklist.sh, refactor URLs, verify isolation |
 | Port conflicts from growth | Adjust port allocation strategy in setup-env.sh |
 
-**How to update**:
-1. Run `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"` (from project root) to detect new services
+1. Run `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"` (from project root) to detect changes
 2. Update `setup-env.sh` to provision new resources
 3. Update `smoke-test.sh` to verify new connections
-4. Test with new environment creation
+4. Test with a new environment creation
 
 ## Reference: Example Implementation
 
 See `assets/setup-env.sh` for complete Docker Compose + Postgres + Redis example. **Use as reference ONLY** - don't copy blindly. Adapt to your project's infrastructure.
 
-## Common Mistakes
-
-**Mistake**: Skipping worktree scan and immediately asking user for script location
-**Fix**: Always run `git worktree list --porcelain` first. If existing worktrees exist, infer the convention from them and confirm rather than asking from scratch.
-
-**Mistake**: Hardcoded ports in application code or package.json
-**Fix**: Run `detect-framework.sh` for framework-specific guidance. Move port config to framework config files (vite.config.ts, etc.), not CLI args.
-
-**Mistake**: Using psql in setup script for projects with SQL execution restrictions
-**Fix**: Check CLAUDE.md for SQL policies. Add CREATE DATABASE exception, document manual step, or use schema-based isolation.
-
-**Mistake**: Using `local` keyword outside functions in bash scripts
-**Fix**: Only use `local` inside function scope, or omit it at script level. Causes "can only be used in a function" error.
-
-**Mistake**: Hardcoded service URLs in codebase
-**Fix**: Run `checklist.sh` BEFORE creating scripts. Refactor URLs to use environment variables or relative paths.
-
-**Mistake**: Copying example script without adapting to project infrastructure
-**Fix**: Use example as reference. Create project-specific script based on checklist.sh detection.
-
-**Mistake**: Forgetting to update CORS origins with new ports
-**Fix**: Include all environment ports in CORS configuration. Restart API server after changes.
-
-**Mistake**: Using same cache keys across environments
-**Fix**: Use Redis DB numbers (0-15) or cache key prefixes to isolate data.
-
-**Mistake**: Not sanitizing environment names for database identifiers
-**Fix**: Replace special characters (`/`, `-`, `.`) with underscores for database names.
-
-**Mistake**: Assuming all frameworks handle ports the same way
-**Fix**: Vite needs config file changes, Next.js reads PORT automatically, Express/Elysia need code changes. Check framework-specific guidance.
-
 ## Troubleshooting
 
-**Checklist fails - no infrastructure**:
-- Add Docker Compose, or
-- Install Supabase CLI, or
-- Document manual database creation steps
+**Skipping worktree scan**: Always run `git worktree list --porcelain` first. Infer the convention from existing worktrees and confirm rather than asking from scratch.
 
-**Hardcoded URLs detected**:
-- Don't proceed with setup until URLs refactored
-- Each hardcoded URL is a future debugging session
+**Hardcoded ports in app code or package.json**: Run `detect-framework.sh` for framework-specific guidance. Move port config to framework config files (vite.config.ts, etc.), not CLI args.
+- Vite: port must be in `vite.config.ts`, not package.json CLI args
+- Next.js: remove `-p` flag from dev script; reads PORT automatically
+- Express/Elysia: update server code to read from `process.env.PORT`
 
-**Framework-specific port configuration issues**:
-- **Vite**: Port must be in `vite.config.ts`, not package.json CLI args
-- **Next.js**: Remove `-p` flag from dev script, uses PORT automatically
-- **Express/Elysia**: Update server code to read from `process.env.PORT`
-- Run `detect-framework.sh` for specific guidance
+**Hardcoded service URLs detected by checklist**: Refactor BEFORE creating isolation scripts. Each hardcoded URL is a future debugging session. Use environment variables or relative paths.
 
-**Database creation fails (Supabase MCP projects)**:
-- **Problem**: Setup script uses psql, but project prohibits CLI SQL
-- **Solution A**: Add exception to CLAUDE.md for CREATE DATABASE (admin operation)
-- **Solution B**: Document manual database creation via Claude Code MCP
-- **Solution C**: Use schema-based isolation instead (`CREATE SCHEMA`)
+**Database creation fails (Supabase MCP projects)**: Setup script uses psql but project prohibits CLI SQL.
+- Strategy A: Add CREATE DATABASE exception to CLAUDE.md (admin operation, one-time)
+- Strategy B: Document manual database creation via Claude Code MCP
+- Strategy C: Use schema-based isolation (`CREATE SCHEMA`) instead
 - See Step 3.6 for detailed strategies
 
-**Port conflicts after setup**:
-- Check `lsof -i :{PORT}` for conflicting processes
-- Adjust port allocation offset in setup-env.sh
+**Checklist fails - no infrastructure**: Add Docker Compose or Supabase CLI, or document manual database creation steps.
 
-**Cleanup script errors with "local can only be used in a function"**:
-- **Problem**: `local` keyword used outside function scope
-- **Solution**: Move variable declaration inside function or remove `local`
-- See Step 7 for correct pattern
+**Port conflicts after setup**: Check `lsof -i :{PORT}` for conflicting processes. Adjust port allocation offset in setup-env.sh.
+
+**`local` keyword error in bash scripts** ("can only be used in a function"): Only use `local` inside function scope, or omit it at script level. See Step 7 for correct pattern.
+
+**CORS errors after setup**: Include all environment ports in CORS configuration. Restart API server after changes.
+
+**Cache conflicts**: Use Redis DB numbers (0-15) or cache key prefixes to isolate data across environments.
+
+**Database name errors**: Replace special characters (`/`, `-`, `.`) with underscores for database names — branch names often contain these.
 
 ## Edge Cases
 
@@ -619,8 +583,9 @@ Once setup scripts are created and tested:
 **Success criteria**:
 - [ ] `"${CLAUDE_SKILL_DIR}/scripts/checklist.sh"` runs from project root and detects all services
 - [ ] Project scripts (setup-env.sh, cleanup-env.sh, smoke-test.sh) created in chosen location
-- [ ] setup-env.sh creates isolated environment successfully
-- [ ] smoke-test.sh verifies all connections
+- [ ] setup-env.sh runs from inside a worktree and creates isolated environment successfully
+- [ ] smoke-test.sh runs from inside a worktree with no arguments and verifies all connections
+- [ ] cleanup-env.sh runs from inside a worktree with no arguments and auto-detects env name
 - [ ] Hardcoded URLs refactored to environment variables
 - [ ] WORKTREE.md created with comprehensive workflow documentation
 - [ ] CLAUDE.md reference section updated to include WORKTREE.md

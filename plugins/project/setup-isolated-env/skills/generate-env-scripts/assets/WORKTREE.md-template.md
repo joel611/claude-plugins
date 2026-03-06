@@ -20,15 +20,20 @@ Each isolated environment gets:
 
 ## Quick Start
 
+Scripts live in `<worktree_scripts>/` (tracked in git, present in every worktree checkout).
+All scripts run from **inside** the worktree.
+
 ```bash
-# Create a new isolated environment
+# 1. Create worktree (from project root)
+git worktree add .worktrees/<env-name> -b <branch>
+cd .worktrees/<env-name>
+
+# 2. Set up and verify the environment (from inside worktree)
 <worktree_scripts>/setup-env.sh
+<worktree_scripts>/smoke-test.sh   # no args needed
 
-# Test environment connectivity
-<worktree_scripts>/smoke-test.sh <env-name>
-
-# Clean up when done
-<worktree_scripts>/cleanup-env.sh <env-name>
+# 3. Clean up when done (from inside worktree)
+<worktree_scripts>/cleanup-env.sh  # no args needed
 ```
 
 ## Port Allocation
@@ -49,6 +54,11 @@ Port offset: **10** per environment
 ### 1. Create Isolated Environment
 
 ```bash
+# From project root:
+git worktree add .worktrees/<env-name> -b <branch>
+cd .worktrees/<env-name>
+
+# From inside worktree:
 <worktree_scripts>/setup-env.sh
 ```
 
@@ -57,13 +67,12 @@ Port offset: **10** per environment
 - Confirmation for existing environments
 
 **What it does:**
-1. Checks Supabase is running
-2. Creates git worktree at `.worktrees/<env-name>/`
-3. Allocates unique ports (auto-increments from existing envs)
-4. Copies and configures `.env.local`
-5. Creates isolated database
-6. Runs migrations
-7. Displays summary with next steps
+1. Checks infrastructure is running
+2. Allocates unique ports (auto-increments from existing envs)
+3. Copies and configures `.env.local`
+4. Creates isolated database
+5. Runs migrations
+6. Displays summary with next steps
 
 **Output:**
 ```
@@ -83,44 +92,49 @@ Next steps:
 
 ### 2. Verify Environment
 
-Run smoke test to verify connectivity:
+Run smoke test from inside the worktree — no arguments needed, env name auto-detected from `$PWD`:
 
 ```bash
-<worktree_scripts>/smoke-test.sh feature-auth
+# From inside .worktrees/<env-name>:
+<worktree_scripts>/smoke-test.sh
 ```
 
 **Checks:**
-- Database connection
-- Supabase connection
-- Port availability (web and agent)
+- Environment variables (PORT, DATABASE_URL, etc.)
+- Database connectivity
+- Port availability
 
 ### 3. Work in Environment
 
 ```bash
-cd .worktrees/feature-auth
+# Already inside .worktrees/feature-auth from Step 2
 
 # Install dependencies (if needed)
 bun install
 
-# Start web server
+# Start dev server (check package.json for your project's command)
 bun run dev  # Runs on port 3010
-
-# Start agent service (separate terminal)
-cd apps/agent && bun run dev  # Runs on port 4121
 ```
 
 ### 4. Clean Up Environment
 
-When feature is complete or abandoned:
+When feature is complete or abandoned, run from inside the worktree (env name auto-detected from `$PWD`):
 
 ```bash
-<worktree_scripts>/cleanup-env.sh feature-auth
+# From inside .worktrees/<env-name>:
+<worktree_scripts>/cleanup-env.sh
 ```
 
-**What it does:**
-1. Removes git worktree
-2. Drops database
-3. Confirms before deletion
+Then remove the worktree from the project root:
+```bash
+git worktree remove .worktrees/<env-name>
+```
+
+**What cleanup does:**
+1. Warns if there are uncommitted changes
+2. Drops the isolated database
+3. Frees cache namespace
+4. Confirms before deletion
 
 ## Environment Variables
 
@@ -155,16 +169,18 @@ OPENROUTER_API_KEY=<same>
 
 ```bash
 # Developer A: Authentication feature
-<worktree_scripts>/setup-env.sh
-# Enter name: feature-auth
+git worktree add .worktrees/feature-auth -b feature-auth
 cd .worktrees/feature-auth
-bun run dev  # Web on 3010, Agent on 4121
+<worktree_scripts>/setup-env.sh    # enter name: feature-auth
+<worktree_scripts>/smoke-test.sh
+bun run dev  # Web on 3010
 
-# Developer B: Dashboard redesign
-<worktree_scripts>/setup-env.sh
-# Enter name: feature-dashboard
+# Developer B: Dashboard redesign (in another terminal, from project root)
+git worktree add .worktrees/feature-dashboard -b feature-dashboard
 cd .worktrees/feature-dashboard
-bun run dev  # Web on 3020, Agent on 4131
+<worktree_scripts>/setup-env.sh    # enter name: feature-dashboard
+<worktree_scripts>/smoke-test.sh
+bun run dev  # Web on 3020
 
 # Both features run simultaneously without conflicts
 ```
@@ -174,37 +190,41 @@ bun run dev  # Web on 3020, Agent on 4131
 ```bash
 # Working on feature branch
 cd .worktrees/feature-new-ui
-bun run dev  # Running on 3010/4121
+bun run dev  # Running on 3010
 
-# Urgent hotfix needed
-<worktree_scripts>/setup-env.sh
-# Enter name: hotfix-crash
+# Urgent hotfix needed — from project root:
+git worktree add .worktrees/hotfix-crash -b hotfix-crash
 cd .worktrees/hotfix-crash
-bun run dev  # Running on 3020/4131
+<worktree_scripts>/setup-env.sh
+<worktree_scripts>/smoke-test.sh
+bun run dev  # Running on 3020
 
 # Fix bug, test, merge hotfix
-# Return to feature work without losing state
-<worktree_scripts>/cleanup-env.sh hotfix-crash
+# Clean up from inside the hotfix worktree:
+<worktree_scripts>/cleanup-env.sh
+# Return to project root and remove worktree:
+cd ../..
+git worktree remove .worktrees/hotfix-crash
 ```
 
 ### Testing Database Migrations
 
 ```bash
-# Create test environment
-<worktree_scripts>/setup-env.sh
-# Enter name: test-migration
-
+# Create test environment from project root:
+git worktree add .worktrees/test-migration -b test-migration
 cd .worktrees/test-migration
+<worktree_scripts>/setup-env.sh
 
-# Test migration
+# Test migration (from inside worktree)
 bun db:push --force
 
 # Verify migration worked
-<worktree_scripts>/smoke-test.sh test-migration
+<worktree_scripts>/smoke-test.sh
 
-# Clean up test environment
+# Clean up from inside the worktree:
+<worktree_scripts>/cleanup-env.sh
 cd ../..
-<worktree_scripts>/cleanup-env.sh test-migration
+git worktree remove .worktrees/test-migration
 ```
 
 ## Troubleshooting
@@ -225,7 +245,7 @@ cd ../..
 **Solution:**
 1. Check Supabase is running: `supabase status`
 2. Verify database doesn't exist: `psql postgres://... -c "\\l"`
-3. Drop existing database: `<worktree_scripts>/cleanup-env.sh <env-name>`
+3. Drop existing database: `cd .worktrees/<env-name> && <worktree_scripts>/cleanup-env.sh`
 
 ### Worktree Creation Fails
 
