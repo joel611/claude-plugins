@@ -21,6 +21,13 @@ setup-isolated-env:generate-env-scripts   ← ONE-TIME per project
 setup-isolated-env:activate-worktree-env  ← PER WORKTREE
   Run setup-env.sh → cd into worktree
   → run smoke-test.sh → start dev
+        │
+        │  (when done with isolation setup)
+        │
+        ▼
+setup-isolated-env:uninstall             ← TEARDOWN
+  Clean up all worktrees → drop databases
+  → remove scripts → restore docs
 ```
 
 ### Trigger Points
@@ -29,6 +36,7 @@ setup-isolated-env:activate-worktree-env  ← PER WORKTREE
 |-------|-------------|
 | `generate-env-scripts` | User asks to set up isolated environments, adds new external service (DB, cache, queue), or reports port/data conflicts between features |
 | `activate-worktree-env` | A git worktree has just been created and needs its environment provisioned and verified |
+| `uninstall` | User wants to remove isolation setup, tear down all worktrees, or revert a project to before generate-env-scripts was run |
 
 ### generate-env-scripts
 
@@ -55,3 +63,18 @@ Trigger phrases / situations:
 - When starting work in a new worktree that has no `.env.local`
 
 Prerequisite: `generate-env-scripts` must have been run first (setup-env.sh must exist).
+
+### uninstall
+
+**Full teardown** — reverses everything generate-env-scripts created.
+
+Trigger phrases:
+- "uninstall setup-isolated-env"
+- "remove the isolated environment setup"
+- "tear down worktree isolation"
+- "undo the environment setup"
+- "remove worktree scripts"
+
+Does NOT trigger for:
+- Cleaning up a single worktree (use `cleanup-env.sh` or `activate-worktree-env` troubleshooting)
+- Ongoing feature development

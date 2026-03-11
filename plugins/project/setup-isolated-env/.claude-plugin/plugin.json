@@ -1,6 +1,6 @@
 {
   "name": "setup-isolated-env",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Enables parallel feature development by isolating each git worktree with its own ports, database, and environment config. Provides two skills: generate-env-scripts to create project-level setup/cleanup/smoke-test scripts, and activate-worktree-env to provision and verify a new worktree's environment.",
   "author": {
     "name": "Joel Chan",
