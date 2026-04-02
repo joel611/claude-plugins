@@ -16,7 +16,7 @@ Each subagent is designed as a CLI wrapper that executes gemini-cli commands and
 **Required:**
 - `gemini-cli` must be installed and configured
   ```bash
-  npm install -g @anthropic/gemini-cli
+  npm install -g @google/gemini-cli
   ```
 - Valid Gemini API credentials configured in gemini-cli
 
@@ -223,7 +223,7 @@ Install the plugin from this marketplace:
 ## Troubleshooting
 
 ### "gemini-cli not found"
-- Install: `npm install -g @anthropic/gemini-cli`
+- Install: `npm install -g @google/gemini-cli`
 - Verify: `gemini --version`
 - Check PATH configuration
 
@@ -244,7 +244,7 @@ Install the plugin from this marketplace:
 
 ## Reference Documentation
 
-- **gemini-cli**: https://github.com/anthropics/gemini-cli
+- **gemini-cli**: https://github.com/google-gemini/gemini-cli
 - **Egghead Tutorial**: https://egghead.io/create-a-gemini-cli-powered-subagent-in-claude-code~adkge
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins
 - **Agent Skills**: https://docs.claude.com/en/docs/claude-code/skills
