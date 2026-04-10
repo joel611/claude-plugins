@@ -2,22 +2,10 @@
   "name": "joel-plugins",
   "owner": {
     "name": "Joel Chan",
-    "email": "joel611@live.hk"
+    "email": "chanhokyim@gmail.com"
   },
   "description": "A collection of plugins useful for development tasks",
   "plugins": [
-    {
-      "name": "plugin-builder",
-      "source": "./plugins/claude/plugin-builder",
-      "description": "Helps create well-structured Claude Code plugins with skills, commands, and proper metadata following best practices",
-      "category": "claude"
-    },
-    {
-      "name": "playwright",
-      "source": "./plugins/testing/playwright",
-      "description": "Comprehensive Playwright E2E testing plugin with test generation, Page Object Models, debugging, and maintenance. Features data-testid locators, TypeScript-first approach, and Playwright MCP integration for browser automation.",
-      "category": "testing"
-    },
     {
       "name": "tts-output",
       "source": "./plugins/claude/tts-output",
@@ -25,10 +13,10 @@
       "category": "claude"
     },
     {
-      "name": "gemini-research",
-      "source": "./plugins/analysis/gemini-research",
-      "description": "Multi-agent plugin using gemini-cli for comprehensive code analysis and web research. Leverages Gemini's 1M token context window through specialized subagents for pattern detection, architecture analysis, documentation lookup, and technology comparisons.",
-      "category": "analysis"
+      "name": "gemini-cli",
+      "source": "./plugins/agent-cli/gemini-cli",
+      "description": "delegate task to gemini-cli",
+      "category": "agent-cli"
     },
     {
       "name": "interview",
