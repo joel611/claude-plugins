@@ -47,6 +47,12 @@
       "source": "./plugins/project/setup-isolated-env",
       "description": "One-time setup plugin for creating automation scripts for isolated development environments using git worktrees. Guides projects through establishing parallel feature development infrastructure with separate worktrees, unique ports, isolated databases, and independent environment configurations.",
       "category": "project"
+    },
+    {
+      "name": "bare-worktree",
+      "source": "./plugins/project/bare-worktree",
+      "description": "Sibling-layout worktree create/remove for bare-repo projects (repo/.bare + repo/<branch> worktrees), with .worktreeinclude support for copying gitignored files like .env into new worktrees",
+      "category": "project"
     }
   ]
 }

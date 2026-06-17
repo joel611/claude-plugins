@@ -1,0 +1,9 @@
+{
+  "name": "bare-worktree",
+  "version": "1.0.0",
+  "description": "Sibling-layout worktree create/remove for bare-repo projects (repo/.bare + repo/<branch> worktrees), with .worktreeinclude support for copying gitignored files like .env into new worktrees",
+  "author": {
+    "name": "Joel Chan",
+    "email": "joel611@live.hk"
+  }
+}
