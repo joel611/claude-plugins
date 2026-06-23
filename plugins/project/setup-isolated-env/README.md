@@ -81,20 +81,22 @@ flowchart LR
 ```bash
 # 1. Create worktree (developer)
 git worktree add .worktrees/my-feature -b my-feature
+
+# 2. Navigate in
 cd .worktrees/my-feature
 
-# 2. Provision environment (skill: activate-worktree-env)
-../../<worktree_scripts>/setup-env.sh
-../../<worktree_scripts>/smoke-test.sh
+# 3. Provision environment (skill: activate-worktree-env)
+.worktrees_scripts/setup-env.sh
+.worktrees_scripts/smoke-test.sh   # no args — auto-detects env from $PWD
 
-# 3. Develop, test, commit, open PR (developer)
+# 4. Develop, test, commit, open PR (developer)
 
-# 4. Clean up (developer — run BEFORE removing worktree)
-../../<worktree_scripts>/cleanup-env.sh my-feature
+# 5. Clean up (developer — run from inside worktree BEFORE removing it)
+.worktrees_scripts/cleanup-env.sh  # no args — auto-detects env from $PWD
 git worktree remove .worktrees/my-feature
 ```
 
-> `cleanup-env.sh` frees DB and cache resources. It does **not** remove the worktree — that's a separate `git worktree remove`.
+> Scripts live in `.worktrees_scripts/` which is tracked in git and present in every worktree checkout. All scripts run from inside the worktree.
 
 ---
 
@@ -102,16 +104,15 @@ git worktree remove .worktrees/my-feature
 
 ### `setup-env.sh`
 
-Runs from inside the worktree. The worktree must already exist.
+Runs from inside the worktree (worktree must already exist, created with `git worktree add`).
 
 ```
 ① Check prerequisites (infra running, .env template present)
 ② Detect branch name (fails if run on main/master)
-③ Verify worktree exists
-④ Allocate unique ports and cache slot
-⑤ Copy .env template → .env.local, write PORT / DATABASE_URL / etc.
-⑥ Create isolated database
-⑦ Run migrations
+③ Allocate unique ports and cache slot
+④ Copy .env template → .env.local, write PORT / DATABASE_URL / etc.
+⑤ Create isolated database
+⑥ Run migrations
 ```
 
 Port allocation:
@@ -123,7 +124,7 @@ main:            PORT=3000, API_PORT=3001
 
 ### `smoke-test.sh`
 
-Runs from inside the worktree. Auto-detects environment from `$PWD`.
+Runs from inside the worktree. No arguments — auto-detects environment from `$PWD`.
 
 ```
 ① PORT and DATABASE_URL are set in .env.local
@@ -134,7 +135,7 @@ Runs from inside the worktree. Auto-detects environment from `$PWD`.
 
 ### `cleanup-env.sh`
 
-Runs from project root before `git worktree remove`.
+Runs from inside the worktree before `git worktree remove`. No arguments — auto-detects env name from `$PWD`.
 
 ```
 ① Warn if worktree has uncommitted changes
