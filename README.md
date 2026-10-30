@@ -38,6 +38,7 @@ Replace `plugin-name` with the name of the plugin you want to install (see avail
 | plugin-builder | Helps create well-structured Claude Code plugins with skills, commands, and proper metadata following best practices |
 | playwright-e2e | Comprehensive Playwright E2E testing plugin with test generation, Page Object Models, debugging, and maintenance. Features data-testid locators, TypeScript-first approach, and Playwright MCP integration for browser automation. |
 | tts-output | Text-to-speech output for Claude responses using macOS 'say' command with customizable voice, speed, and AI-generated summaries |
+| env-redact | Redacts secret values from .env files out of every tool result the model reads |
 
 ## Plugin Management
 

@@ -53,6 +53,12 @@
       "source": "./plugins/project/bare-worktree",
       "description": "Sibling-layout worktree create/remove for bare-repo projects (repo/.bare + repo/<branch> worktrees), with .worktreeinclude support for copying gitignored files like .env into new worktrees",
       "category": "project"
+    },
+    {
+      "name": "env-redact",
+      "source": "./plugins/claude/env-redact",
+      "description": "Redacts secret values from .env files out of every tool result the model reads",
+      "category": "claude"
     }
   ]
 }
